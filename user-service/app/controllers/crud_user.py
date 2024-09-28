@@ -1,5 +1,5 @@
 from sqlmodel import Session, select
-from app.models.user_models import UserModel, User
+from app.models.user_models import UserModel, User, UserUpdate
 from app.db.db_connector import DB_SESSION
 from fastapi import HTTPException
 
@@ -25,7 +25,28 @@ def get_user_by_id(user_id:int,session: DB_SESSION):
     raise HTTPException(
             status_code=404, detail="no user exits with this id"
             )
+
+def update_user_by_id(user_id:int,user_update_details: UserUpdate,session: DB_SESSION):    
+    user = session.exec(select(User).where(User.user_id==user_id)).first()
+    if not user:
+        raise HTTPException(
+            status_code=404, detail="no user exits with this id"
+            )
+    if user_update_details.user_name is not None:
+        user.user_name = user_update_details.user_name
+    if user_update_details.phone_num is not None:
+        user.phone_num = user_update_details.phone_num
+    if user_update_details.user_password is not None:
+        user.user_password = user_update_details.user_password
+        
+    session.add(user)
+    session.commit()
+    session.refresh(user)
     
+    return user
+    
+
+
 def delete_user_by_id(user_id:int,session: DB_SESSION):    
     user = session.exec(select(User).where(User.user_id==user_id)).first()
     if not user:    
