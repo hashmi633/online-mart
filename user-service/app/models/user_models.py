@@ -15,6 +15,7 @@ class UserModel(UserAuth, UserBase):
 
 class User(UserModel, table=True):
     user_id: Optional[int] = Field(default=None,primary_key=True)
+    
 
 class UserUpdate(SQLModel):
     user_name : Optional[str] = None
