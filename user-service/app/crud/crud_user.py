@@ -1,23 +1,22 @@
 from sqlmodel import Session, select
 from app.models.user_models import UserModel, User, UserUpdate
-
 from app.db.db_connector import DB_SESSION
 from fastapi import HTTPException
 
-def user_add(user_detail: User, session: DB_SESSION):
-    user_email = user_detail.user_email
-    users = session.exec(select(User))   
-    for user in users:
-        if user.user_email == user_email:
-            raise HTTPException(
-                status_code=404, detail="email already existed"
+def user_add(user_detail: User, session: Session):
+
+    existing_user = session.exec(select(User).where(User.user_email== user_detail.user_email)).first()   
+    if existing_user:
+        raise HTTPException(
+            status_code=409, detail="email already existed"
             )
+   
     session.add(user_detail)
     session.commit()
     session.refresh(user_detail)    
     return user_detail
     
-def get_user_by_id(user_id:int,session: DB_SESSION):    
+def get_user_by_id(user_id:int,session: Session):    
     user = session.exec(select(User).where(User.user_id==user_id)).first()
     
     if user:
@@ -27,7 +26,7 @@ def get_user_by_id(user_id:int,session: DB_SESSION):
             status_code=404, detail="no user exits with this id"
             )
 
-def update_user_by_id(user_id:int,user_update_details: UserUpdate,session: DB_SESSION):    
+def update_user_by_id(user_id:int,user_update_details: UserUpdate,session: Session):    
     user = session.exec(select(User).where(User.user_id==user_id)).first()
     if not user:
         raise HTTPException(
@@ -48,7 +47,7 @@ def update_user_by_id(user_id:int,user_update_details: UserUpdate,session: DB_SE
     
 
 
-def delete_user_by_id(user_id_to_delete:int,session: DB_SESSION):    
+def delete_user_by_id(user_id_to_delete:int,session: Session):    
     user = session.exec(select(User).where(User.user_id==user_id_to_delete)).first()
     if not user:    
         raise HTTPException(

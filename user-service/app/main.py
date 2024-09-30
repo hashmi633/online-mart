@@ -1,9 +1,9 @@
 from fastapi import FastAPI
 from contextlib import asynccontextmanager
 from typing import AsyncGenerator
-from app.routes import user_routes
+from app.routes.user_routes import router
 from app.db.db_connector import create_db_and_tables
-from app.controllers.crud_admin import initialize_admin
+from app.crud.crud_admin import initialize_admin
 
 @asynccontextmanager
 async def lifespan(app:FastAPI)->AsyncGenerator[None, None]:
@@ -23,10 +23,5 @@ app : FastAPI = FastAPI(lifespan=lifespan, title="Hello World",
         }
         ])
 
-app.include_router(router=user_routes.router)
+app.include_router(router=router)
 
-
-@app.get('/bs')
-def welcome():
-    # print("Welcome to user interface")
-    return {"Hello":"Welcome to User Service"}
