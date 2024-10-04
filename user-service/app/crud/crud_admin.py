@@ -4,6 +4,9 @@ from app.models.admin_model import Admin
 from app.db.db_connector import DB_SESSION,get_session
 from fastapi import HTTPException
 from passlib.context import CryptContext
+from app.helpers.jwt_helper import create_access_token, oath2_scheme, verify_token
+from fastapi import Depends
+from typing import Annotated
 
 ADMIN_EMAIL = "khazir@khazir.com"
 ADMIN_PASSWORD = "khazirpassword"
@@ -31,17 +34,33 @@ def initialize_admin():
 
 def admin_authentication(admin_email:str, admin_password:str,session: Session):
     admin = session.exec(select(Admin).where(Admin.admin_email==admin_email)).first()
-    if not admin or not pwd_context.verify(admin_password, admin.admin_password):
+    if not admin:
         raise HTTPException(
             status_code=403,
-            detail="Invalid admin credentials."
+            detail="Username does not exists"
         )
-    return admin
+    elif not pwd_context.verify(admin_password, admin.admin_password):
+        raise HTTPException(
+            status_code=403,
+            detail="Invalid password"
+        )
+    access_token = create_access_token({"sub": admin_email, "role": "admin"})
+    return {"access_token": access_token, "token_type": "bearer"}
 
-
-
-
-
-
-
-
+def get_current_admin(token: Annotated[str, Depends(oath2_scheme)]):
+    try:
+        payload = verify_token(token)   
+    except HTTPException as e:
+        if e.detail == "Token has expired":
+            raise HTTPException(
+                status_code=401, 
+                detail="Token has expired, please log in again."
+            )
+        else:
+            raise e
+    if payload.get("role") != "admin":
+        raise HTTPException(
+            status_code=403, 
+            detail="User access required"
+        )
+    return payload
