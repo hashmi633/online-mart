@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Depends, Query, HTTPException
 from typing import Annotated
-from app.crud.crud_user import user_add,get_user_by_id,delete_user_by_id,update_user_by_id, fetch_all_users, get_current_user
+from app.crud.crud_user import user_add,get_user_by_id,delete_user_by_id,update_user_by_id, fetch_all_users , get_current_user, admin_or_user
 from app.crud.crud_admin import admin_authentication, get_current_admin, pwd_context
 from app.db.db_connector import DB_SESSION
 from app.models.user_models import UserModel, User,UserUpdate
@@ -27,47 +27,47 @@ def add_user(user: User, session: DB_SESSION):
     return created_user
 
 @router.put('/update_user')
-def update_user(user_id_to_update: int, user_update_details: UserUpdate, session: DB_SESSION, current_user:dict = Depends(get_current_user)):
-    if current_user.get("user_id") == user_id_to_update:
+def update_user(
+    user_id_to_update: int,
+    user_update_details: UserUpdate,
+    session: DB_SESSION,
+    current_user:Annotated[dict, Depends(get_current_user)]):
+
+    user_id_from_token = current_user.get("user_id")
+    if user_id_from_token == user_id_to_update:
         updated_user = update_user_by_id(user_id_to_update, user_update_details, session)
         return updated_user
     else:
         raise HTTPException(
-            status_code=401,
-            detail="You can only update your own id information "
+            status_code=403,
+            detail="You are you not allowed to update other's id details."
         )
     
 @router.delete("/delete_user")
 def delete_user(
     session: DB_SESSION,
-    admin: str = Depends(get_current_admin), 
+    admin: dict = Depends(get_current_admin), 
     user_id_to_delete: int = Query(..., description="ID of the user to delete")
     ):
     deleted_user = delete_user_by_id(user_id_to_delete, session)
     return deleted_user
 
 @router.post("/login")
-def admin_login(admin_credential: Annotated[OAuth2PasswordRequestForm, Depends(OAuth2PasswordRequestForm)], session:DB_SESSION):
-    admin = session.exec(select(Admin).where(Admin.admin_email==admin_credential.username)).first()
-    user = session.exec(select(User).where(User.user_email == admin_credential.username)).first()
-
-    if admin and pwd_context.verify(admin_credential.password, admin.admin_password):
-        access_token = create_access_token({"sub": admin_credential.username, "role": "admin"})
-        return {"access_token": access_token, "token_type": "bearer"}
-    elif user and admin_credential.password == user.user_password:
-        access_token = create_access_token({"sub": admin_credential.username, "role": "user", "user_id": user.user_id})
-        print(access_token)
-        return {"access_token":access_token}
+def admin_login(
+                credential: Annotated[OAuth2PasswordRequestForm, Depends(OAuth2PasswordRequestForm)],
+                session:DB_SESSION
+                ):
     
-    # admin_username = admin_credential.username
-    # admin_password = admin_credential.password
-    # admin_token_details = admin_authentication(admin_username,admin_password,session)
-    # return admin_token_details
+    username = credential.username
+    password = credential.password
+
+    admin_or_user_id = admin_or_user(username, password, session)
+    return admin_or_user_id
 
 @router.get('/get-all-users')
 def get_all_users(
     session: DB_SESSION,
-    current_admin:str = Depends(get_current_admin),
+    current_admin:dict = Depends(get_current_admin),
     ):
 
     users = fetch_all_users(session)

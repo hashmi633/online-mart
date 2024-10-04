@@ -48,6 +48,9 @@ def admin_authentication(admin_email:str, admin_password:str,session: Session):
     return {"access_token": access_token, "token_type": "bearer"}
 
 def get_current_admin(token: Annotated[str, Depends(oath2_scheme)]):
+    return get_current_user_by_role(token, role="admin")
+
+def get_current_user_by_role(token: str, role : str):
     try:
         payload = verify_token(token)   
     except HTTPException as e:
@@ -58,9 +61,10 @@ def get_current_admin(token: Annotated[str, Depends(oath2_scheme)]):
             )
         else:
             raise e
-    if payload.get("role") != "admin":
+    if payload.get("role") != role:
         raise HTTPException(
             status_code=403, 
-            detail="User access required"
+            detail=f"{role.capitalize()} access required"
         )
     return payload
+    
