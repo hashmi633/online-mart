@@ -1,6 +1,6 @@
 from sqlmodel import Session, select
 from app.models.user_models import User
-from app.models.admin_model import Admin
+from app.models.admin_model import Admin, SubAdmin
 from app.db.db_connector import DB_SESSION,get_session
 from fastapi import HTTPException
 from passlib.context import CryptContext
@@ -68,3 +68,16 @@ def get_current_user_by_role(token: str, role : str):
         )
     return payload
     
+def sub_admin(sub_admin_detail: SubAdmin, session: Session):
+    admin = session.exec(select(SubAdmin).where(SubAdmin.admin_email == sub_admin_detail.admin_email)).first()
+    if admin:
+       raise HTTPException(
+        status_code=402,
+        detail="email aleady exists."
+       ) 
+    else: 
+        session.add(sub_admin_detail)
+        session.commit()
+        session.refresh(sub_admin_detail)
+    
+    return sub_admin_detail
