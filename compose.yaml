@@ -23,17 +23,18 @@ services:
     ports:
       - "8081:8081"  
 #======================================================================================
-  # inventory:
-  #   build: 
-  #     context: ./inventory-service
-  #     dockerfile: Dockerfile.dev
-  #   volumes:
-  #     - ./inventory-service:/code/inventory-service
-  #   depends_on:
-  #     - database
-  #     - kafka
-  #   ports:
-  #     - "8002:8002"
+  inventory:
+    build: 
+      context: ./inventory-service
+      dockerfile: Dockerfile
+    container_name: khazir-mart-inventory
+    volumes:
+      - ./inventory-service:/code
+    depends_on:
+      - database
+      # - kafka
+    ports:
+      - "8002:8002"
 #=======================================================================================      
   # notification:
   #   build: 

@@ -30,4 +30,4 @@ COPY . /code/
 EXPOSE 8002
 
 # Run the app. CMD can be overridden when starting the container
-CMD ["poetry", "run", "uvicorn", "app.main:app", "--host", "0.0.0.0","--port","8002" "--reload"]
+CMD ["poetry", "run", "uvicorn", "app.main:app", "--host", "0.0.0.0","--port","8002", "--reload"]
