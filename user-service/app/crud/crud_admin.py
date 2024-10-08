@@ -48,6 +48,7 @@ def admin_authentication(admin_email:str, admin_password:str,session: Session):
     return {"access_token": access_token, "token_type": "bearer"}
 
 def get_current_admin(token: Annotated[str, Depends(oath2_scheme)]):
+    print(token)
     return get_current_user_by_role(token, role="admin")
 
 def get_current_user_by_role(token: str, role : str):

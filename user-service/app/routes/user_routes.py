@@ -60,6 +60,7 @@ def admin_login(
     
     username = credential.username
     password = credential.password
+    
 
     admin_or_user_id = admin_or_user(username, password, session)
     return admin_or_user_id
@@ -67,7 +68,7 @@ def admin_login(
 @router.get('/get-all-users')
 def get_all_users(
     session: DB_SESSION,
-    current_admin:dict = Depends(get_current_admin),
+    current_admin:dict = Depends(get_current_admin)
     ):
 
     users = fetch_all_users(session)
