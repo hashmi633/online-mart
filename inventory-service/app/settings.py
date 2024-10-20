@@ -7,3 +7,5 @@ except FileNotFoundError:
     config = Config()
 
 DATABASE_URL = config("DATABASE_URL", cast= Secret)
+ALGORITHM = config("ALGORITHM")
+SECRET_KEY = config("SECRET_KEY")

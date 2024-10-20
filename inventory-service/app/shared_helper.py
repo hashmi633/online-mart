@@ -1,14 +1,18 @@
-import requests
-from fastapi import HTTPException
+from typing import Annotated
+from fastapi import HTTPException, Depends
+from fastapi.security import OAuth2PasswordBearer
+from jose import jwt,  JWTError
+from app.settings import ALGORITHM, SECRET_KEY
 
-USER_SERVICE_URL = 'http://127.0.0.1:8081'
 
-def validate_token(token: dict):
-    response = requests.get(f"{USER_SERVICE_URL}/validate_token", headers={"Authorization": f"Bearer {token}"})
-    if response.status_code == 200:
-        return response.json()
-    else:
-        raise HTTPException(
-            status_code=401,
-            detail="Invalid or expired token."
-        )
+oauth2_scheme = OAuth2PasswordBearer(tokenUrl="http://127.0.0.1:8081/login")
+
+def validate_token(token: Annotated[str, Depends(oauth2_scheme)]):
+    try:
+        payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+        return payload
+    except JWTError as e:
+        raise HTTPException(status_code=401, detail="Could not validate credentials")
+    
+    
+    
