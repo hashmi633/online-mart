@@ -8,13 +8,15 @@ from app.models.admin_model import Admin, SubAdmin
 from fastapi.security import OAuth2PasswordRequestForm
 from app.helpers.jwt_helper import oath2_scheme, create_access_token, verify_token
 from sqlmodel import select
+from aiokafka import AIOKafkaProducer
+from app.helpers.kafka import get_kafka_producer
+import json
 
 router = APIRouter()
 
 @router.get("/")
 def welcome():
-    print("Welcome to user route")
-    return {"Hello":"Welcome to User Service from Base Route"}
+    return {"Hello":"Welcome to User Service"}
 
 @router.get("/get_user")
 def get_user(user_id: int, session: DB_SESSION, token: str = Depends(oath2_scheme)):
@@ -22,8 +24,14 @@ def get_user(user_id: int, session: DB_SESSION, token: str = Depends(oath2_schem
     return user_to_get
 
 @router.post('/add_user')
-def add_user(user: User, session: DB_SESSION):
+async def add_user(user: User,
+             producer: Annotated[AIOKafkaProducer, Depends(get_kafka_producer)],
+             session: DB_SESSION):
+    
     created_user = user_add(user, session)
+    user_data = {field: getattr(created_user, field) for field in created_user.dict()}
+    user_json = json.dumps(user_data).encode("utf-8")
+    await producer.send_and_wait("users", user_json)
     return created_user
 
 @router.put('/update_user')
