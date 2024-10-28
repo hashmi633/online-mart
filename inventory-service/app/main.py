@@ -4,6 +4,8 @@ from app.routes.inventory_routes import router
 from typing import AsyncGenerator
 from app.db.db_connector import create_db_and_tables
 from fastapi.middleware.cors import CORSMiddleware
+from app.kafka_code import consume_messages
+import asyncio
 
 
 
@@ -11,7 +13,8 @@ from fastapi.middleware.cors import CORSMiddleware
 async def lifespan(app:FastAPI)->AsyncGenerator[None, None]:
     print("Starting Applicaton...!")
     create_db_and_tables()
-    print("Inventory Application Started.")
+    task = asyncio.create_task(consume_messages('users','broker:19092'))
+    # print("Inventory Application Started.")
     yield
 
 app: FastAPI = FastAPI(lifespan=lifespan, title="Inventory Service",

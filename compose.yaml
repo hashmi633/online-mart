@@ -30,7 +30,21 @@ services:
     networks:
       - mart-network
 
-#=======================================================================================      
+#=======================================================================================
+  product:
+    build: 
+      context: ./product-service
+      dockerfile: Dockerfile
+    container_name: khazir-mart-product
+    volumes:
+      - ./product-service:/code
+    depends_on:
+      - database
+    ports:
+      - "8003:8003"
+    networks:
+      - mart-network
+#=======================================================================================
   database:
     image: postgres:16
     restart: always

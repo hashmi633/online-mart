@@ -5,7 +5,7 @@ from app.crud.category_crud import add_to_category, get_to_category, update_to_c
 from app.crud.warehouse_crud import add_to_warehouse, get_to_warehouse, update_to_warehouse, delete_to_warehouse, list_all_warehouses
 from app.crud.supplier_crud import add_to_supplier, get_to_supplier, update_to_supplier, delete_to_supplier,get_all_suppliers
 from app.crud.inventory_crud import add_to_inventory, get_to_inventory_item_by_id, update_to_inventory, delete_to_inventory, get_inventory_items_by_category, get_inventory_items_by_warehouse, get_all_items
-from app.crud.stockin_crud import add_stock_in
+from app.crud.stockin_crud import add_stock_in, get_stock_in_entries_by_item, get_stock_in_entries_by_supplier, get_stock_in_entries_by_warehouse, calculate_stock_level
 from typing import Annotated
 from app.shared_helper import validate_token
 
@@ -220,3 +220,31 @@ def add_stock(stock_in: StockIn,
                 ):
     new_stock = add_stock_in(stock_in, session)
     return {"message": "Stock added to inventory", "stock": new_stock}
+
+@router.get("/stockin/{item_id}", tags=['StockIn'])
+def get_stock_in_entries(item_id: int,
+                         session : DB_SESSION
+                         ):
+    stock_entries = get_stock_in_entries_by_item(item_id, session)
+    return {"item_id": item_id, "stock_entries": stock_entries}
+
+@router.get("/stockin/supplier/{supplier_id}", tags=['StockIn'])
+def get_stock_in_by_supplier(supplier_id: int,
+                         session : DB_SESSION
+                         ):
+    stock_entries = get_stock_in_entries_by_supplier(supplier_id, session)
+    return {"supplier_id": supplier_id, "stock_entries": stock_entries}
+
+@router.get("/stockin/warehouse/{warehouse_id}", tags=['StockIn'])
+def get_stock_in_by_warehouse(warehouse_id: int,
+                         session : DB_SESSION
+                         ):
+    stock_entries = get_stock_in_entries_by_warehouse(warehouse_id, session)
+    return {"warehouse_id": warehouse_id, "stock_entries": stock_entries}
+
+@router.get("/inventory/{item_id}/stock-level", tags=['StockIn'])
+def get_stock_level(item_id: int,
+                    session : DB_SESSION
+                    ):
+    stock_level = calculate_stock_level(item_id, session)
+    return {"item_id": item_id, "stock_level": stock_level}
