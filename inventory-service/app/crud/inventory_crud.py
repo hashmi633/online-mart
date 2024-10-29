@@ -1,6 +1,8 @@
 from app.models.inventory_models import InventoryItem, StockIn, Warehouse
+from app.crud.stockin_crud import calculate_stock_level
 from sqlmodel import Session, select
 from fastapi import HTTPException, Depends
+import json
 
 def add_to_inventory(inventory_data:InventoryItem,session: Session):
     existing_inventory = session.exec(select(InventoryItem).where(inventory_data.item_id==InventoryItem.item_id)).first()
@@ -95,3 +97,30 @@ def get_all_items(session: Session):
             detail=f"No inventory item is added yet"
         )
     return items
+
+def update_of_inventory(
+         item_id: int,
+         session: Session
+        ):
+    inventory_item = session.get(InventoryItem, item_id)
+    if not inventory_item:
+        raise HTTPException(status_code=404, detail="Inventory item not found")
+     # Use calculate_stock_level to get the total quantity
+    total_quantity = calculate_stock_level(item_id, session)
+
+    # Determine status based on quantity
+    status = "available" if total_quantity > 0 else "out_of_stock"
+
+    # Prepare the Kafka message
+    inventory_updates = {
+        "inventory_item_id": item_id,  # Corresponds to item_id in InventoryItem table
+        "quantity": total_quantity,
+        "status": status
+    }
+
+    inventory_json = json.dumps(inventory_updates).encode("utf-8")
+    return inventory_json
+
+    # Send the message to Kafka topic "inventory_updates"
+    # await producer.send_and_wait("inventory_updates", inventory_json)
+    # return {"message": "Inventory updated and event sent to Kafka"}

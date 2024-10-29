@@ -1,4 +1,13 @@
-from aiokafka import AIOKafkaConsumer
+from aiokafka import AIOKafkaConsumer, AIOKafkaProducer
+
+async def get_kafka_producer():
+    producer = AIOKafkaProducer(bootstrap_servers="broker:19092")
+    await producer.start()
+    try:
+        yield producer
+    finally:
+        await producer.stop()
+    
 
 async def consume_messages(topic, bootstrap_servers):
     consumer = AIOKafkaConsumer(

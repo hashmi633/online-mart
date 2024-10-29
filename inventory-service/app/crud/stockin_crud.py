@@ -60,6 +60,7 @@ def get_stock_in_entries_by_warehouse(id: int, session: Session):
 
 def calculate_stock_level(id: int, session: Session):
     stock_entries = session.exec(select(StockIn).where(id==StockIn.item_id)).all()
+
     total_quantity = sum(entry.quantity for entry in stock_entries)
     return total_quantity
 

@@ -4,10 +4,12 @@ from app.db.db_connector import DB_SESSION
 from app.crud.category_crud import add_to_category, get_to_category, update_to_category, delete_to_category, get_all_categories
 from app.crud.warehouse_crud import add_to_warehouse, get_to_warehouse, update_to_warehouse, delete_to_warehouse, list_all_warehouses
 from app.crud.supplier_crud import add_to_supplier, get_to_supplier, update_to_supplier, delete_to_supplier,get_all_suppliers
-from app.crud.inventory_crud import add_to_inventory, get_to_inventory_item_by_id, update_to_inventory, delete_to_inventory, get_inventory_items_by_category, get_inventory_items_by_warehouse, get_all_items
+from app.crud.inventory_crud import add_to_inventory, get_to_inventory_item_by_id, update_to_inventory, delete_to_inventory, get_inventory_items_by_category, get_inventory_items_by_warehouse, get_all_items, update_of_inventory
 from app.crud.stockin_crud import add_stock_in, get_stock_in_entries_by_item, get_stock_in_entries_by_supplier, get_stock_in_entries_by_warehouse, calculate_stock_level
 from typing import Annotated
 from app.shared_helper import validate_token
+from app.kafka_code import get_kafka_producer
+from aiokafka import AIOKafkaProducer
 
 router = APIRouter()
 
@@ -184,9 +186,11 @@ def update_inventory_item(
 def delete_inventory(
                     item_id: int,
                     token: Annotated[str, Depends(validate_token)],
-                    session : DB_SESSION
+                    session : DB_SESSION,
+                    producer: Annotated[AIOKafkaProducer, Depends(get_kafka_producer)]
                     ):
     deleted_inventory = delete_to_inventory(item_id, session)
+    # await update_inventory(item_id, session, producer)
     return deleted_inventory
 
 @router.get('/inventory/category/{category_id}', tags=['Inventory'])
@@ -214,11 +218,14 @@ def get_all_items_list(
     return all_items
 
 @router.post("/stockin", tags=['StockIn'])
-def add_stock(stock_in: StockIn,
+async def add_stock(item_id: int,
+                stock_in: StockIn,
                 token: Annotated[str, Depends(validate_token)],
-                session : DB_SESSION
+                session : DB_SESSION,
+                producer: Annotated[AIOKafkaProducer, Depends(get_kafka_producer)]
                 ):
     new_stock = add_stock_in(stock_in, session)
+    await update_inventory(item_id, session, producer)
     return {"message": "Stock added to inventory", "stock": new_stock}
 
 @router.get("/stockin/{item_id}", tags=['StockIn'])
@@ -247,4 +254,15 @@ def get_stock_level(item_id: int,
                     session : DB_SESSION
                     ):
     stock_level = calculate_stock_level(item_id, session)
-    return {"item_id": item_id, "stock_level": stock_level}
+    return stock_level
+
+@router.post("/update_inventory", tags=['Inventory'])
+async def update_inventory(
+    item_id: int,
+    session : DB_SESSION,
+    producer: Annotated[AIOKafkaProducer, Depends(get_kafka_producer)]
+    ):
+
+    inventory_json = update_of_inventory(item_id, session)
+    await producer.send_and_wait("inventory_updates", inventory_json)
+    return {"message": "Inventory updated and event sent to Kafka"}

@@ -1,10 +1,11 @@
-from sqlmodel import SQLModel, Field
+from sqlmodel import SQLModel, Field, Relationship
 from typing import Optional
 
 class Category(SQLModel, table=True):
     category_id: Optional[int] = Field(default=None, primary_key=True)
     category_name: str = Field(index=True, unique=True, description="Name of the category")
     description: Optional[str] = Field(default=None,  description="Description of the category")
+    items: list["InventoryItem"] = Relationship(back_populates="category")
 
 class Warehouse(SQLModel, table=True):
     warehouse_id: Optional[int] = Field(default=None, primary_key=True)
@@ -23,6 +24,7 @@ class InventoryItem(SQLModel, table=True):
     item_name: str = Field(index=True, description="Name of the inventory item")
     category_id: int = Field(foreign_key="category.category_id", nullable=False, index=True, description="Category ID reference")
     description: Optional[str] = Field(default=None, description="Description of the item")
+    category : Optional["Category"] = Relationship(back_populates='items')
     # You can add other basic fields related to the item but not purchase-specific data
 
 class StockIn(SQLModel, table=True):

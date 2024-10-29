@@ -10,10 +10,10 @@ connection_string = str(DATABASE_URL).replace(
 
 engine = create_engine(
     connection_string, 
-        pool_pre_ping=True,
-        echo=True,
-        pool_recycle=300
-)
+    pool_pre_ping=True,
+    echo=True,
+    pool_recycle=300
+    )
 
 def get_session():
     with Session(engine) as session:
