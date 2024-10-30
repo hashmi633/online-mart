@@ -218,14 +218,13 @@ def get_all_items_list(
     return all_items
 
 @router.post("/stockin", tags=['StockIn'])
-async def add_stock(item_id: int,
-                stock_in: StockIn,
+async def add_stock(stock_in: StockIn,
                 token: Annotated[str, Depends(validate_token)],
                 session : DB_SESSION,
                 producer: Annotated[AIOKafkaProducer, Depends(get_kafka_producer)]
                 ):
     new_stock = add_stock_in(stock_in, session)
-    await update_inventory(item_id, session, producer)
+    await update_of_inventory(stock_in.item_id,session, producer)
     return {"message": "Stock added to inventory", "stock": new_stock}
 
 @router.get("/stockin/{item_id}", tags=['StockIn'])
@@ -256,13 +255,3 @@ def get_stock_level(item_id: int,
     stock_level = calculate_stock_level(item_id, session)
     return stock_level
 
-@router.post("/update_inventory", tags=['Inventory'])
-async def update_inventory(
-    item_id: int,
-    session : DB_SESSION,
-    producer: Annotated[AIOKafkaProducer, Depends(get_kafka_producer)]
-    ):
-
-    inventory_json = update_of_inventory(item_id, session)
-    await producer.send_and_wait("inventory_updates", inventory_json)
-    return {"message": "Inventory updated and event sent to Kafka"}

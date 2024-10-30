@@ -2,6 +2,9 @@ from app.models.inventory_models import InventoryItem, StockIn, Warehouse
 from app.crud.stockin_crud import calculate_stock_level
 from sqlmodel import Session, select
 from fastapi import HTTPException, Depends
+from app.kafka_code import get_kafka_producer
+from aiokafka import AIOKafkaProducer
+from typing import Annotated
 import json
 
 def add_to_inventory(inventory_data:InventoryItem,session: Session):
@@ -98,9 +101,10 @@ def get_all_items(session: Session):
         )
     return items
 
-def update_of_inventory(
+async def update_of_inventory(
          item_id: int,
-         session: Session
+         session: Session,
+         producer: AIOKafkaProducer
         ):
     inventory_item = session.get(InventoryItem, item_id)
     if not inventory_item:
@@ -119,8 +123,7 @@ def update_of_inventory(
     }
 
     inventory_json = json.dumps(inventory_updates).encode("utf-8")
-    return inventory_json
 
     # Send the message to Kafka topic "inventory_updates"
-    # await producer.send_and_wait("inventory_updates", inventory_json)
-    # return {"message": "Inventory updated and event sent to Kafka"}
+    await producer.send_and_wait("inventory_updates", inventory_json)
+    return {"message": "Inventory updated and event sent to Kafka"}

@@ -2,7 +2,7 @@ from app.models.inventory_models import InventoryItem, StockIn, Warehouse, Suppl
 from sqlmodel import Session, select
 from fastapi import HTTPException, Depends
 
-def add_stock_in(stock_in:StockIn,session: Session):
+def add_stock_in(stock_in:StockIn, session: Session):
     existing_item = session.exec(select(InventoryItem).where(stock_in.item_id==InventoryItem.item_id)).first()
 
     if existing_item:
