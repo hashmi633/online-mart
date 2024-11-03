@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Depends
 from app.models.inventory_models import Category, Warehouse, Supplier, InventoryItem, StockIn
 from app.db.db_connector import DB_SESSION
-from app.crud.category_crud import add_to_category, get_to_category, update_to_category, delete_to_category, get_all_categories
+# from app.crud.category_crud import add_to_category, get_to_category, update_to_category, delete_to_category, get_all_categories
 from app.crud.warehouse_crud import add_to_warehouse, get_to_warehouse, update_to_warehouse, delete_to_warehouse, list_all_warehouses
 from app.crud.supplier_crud import add_to_supplier, get_to_supplier, update_to_supplier, delete_to_supplier,get_all_suppliers
 from app.crud.inventory_crud import add_to_inventory, get_to_inventory_item_by_id, update_to_inventory, delete_to_inventory, get_inventory_items_by_category, get_inventory_items_by_warehouse, get_all_items, update_of_inventory
@@ -16,52 +16,6 @@ router = APIRouter()
 @router.get('/')
 def welcome():
     return{"Hello":"Welcome to Inventory Service"}
-
-@router.post('/add_category', tags=["Category"])
-def add_category(
-                category_data: Category,
-                token: Annotated[str, Depends(validate_token)],
-                session : DB_SESSION
-                ):
-    added_category = add_to_category(category_data, session)
-    return added_category
-
-@router.get('/category/{category_id}', tags=["Category"])
-def get_category(
-                category_id: int,
-                token: Annotated[str, Depends(validate_token)],
-                session : DB_SESSION
-                ):
-    got_category = get_to_category(category_id, session)
-    return got_category
-
-@router.put('/update-category', tags=["Category"])
-def update_category(
-                id: int,
-                category_data: Category,
-                token: Annotated[str, Depends(validate_token)],
-                session : DB_SESSION
-                ):
-    updated_category = update_to_category(id,category_data, session)
-    return updated_category
-
-    
-@router.delete('/delete_category', tags=["Category"])
-def delete_category(
-                    category_id: int,
-                    token: Annotated[str, Depends(validate_token)],
-                    session : DB_SESSION
-                    ):
-    deleted_category = delete_to_category(category_id, session)
-    return deleted_category
-   
-@router.get('/list-all-categories', tags=['Category'])
-def list_all_categories(
-                token: Annotated[str, Depends(validate_token)],
-                session : DB_SESSION
-                ):
-    all_categories = get_all_categories(session)
-    return all_categories
 
 @router.post('/add_warehouse', tags=["Warehouse"])
 def add_warehouse(
