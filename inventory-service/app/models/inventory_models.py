@@ -1,11 +1,5 @@
 from sqlmodel import SQLModel, Field, Relationship
-from typing import Optional
-
-class Category(SQLModel, table=True):
-    category_id: Optional[int] = Field(default=None, primary_key=True)
-    category_name: str = Field(index=True, unique=True, description="Name of the category")
-    description: Optional[str] = Field(default=None,  description="Description of the category")
-    items: list["InventoryItem"] = Relationship(back_populates="category")
+from typing import Optional, List
 
 class Warehouse(SQLModel, table=True):
     warehouse_id: Optional[int] = Field(default=None, primary_key=True)
@@ -19,23 +13,17 @@ class Supplier(SQLModel, table=True):
     email: str = Field(unique=True, index=True, description="Email address of the supplier")
     address: str = Field(description="Physical address of the supplier")
 
-class InventoryItem(SQLModel, table=True):
-    item_id: Optional[int] = Field(default=None, primary_key=True)
-    item_name: str = Field(index=True, description="Name of the inventory item")
-    category_id: int = Field(foreign_key="category.category_id", nullable=False, index=True, description="Category ID reference")
-    description: Optional[str] = Field(default=None, description="Description of the item")
-    category : Optional["Category"] = Relationship(back_populates='items')
-    # You can add other basic fields related to the item but not purchase-specific data
-
 class Inventory(SQLModel, table=True):
-    product_id : int = Field(primary_key=True, description='ID matching the product ID')
+    item_id : Optional[int] = Field(default=None, primary_key=True)
+    product_id : int = Field(description='ID matching the product ID')
     product_name: str
     description: str
     quantity: int = Field(default=0, description="Available quantity of the product")
+    stocks: List["StockIn"] = Relationship(back_populates="inventory")
 
 class StockIn(SQLModel, table=True):
     stock_in_id : Optional[int] = Field(default=None, primary_key=True)
-    item_id: int = Field(foreign_key="inventoryitem.item_id", nullable=False, description="Inventory Item reference")  
+    item_id: int = Field(foreign_key="inventory.item_id", nullable=False, description="Inventory Item reference")  
     supplier_id: int = Field(foreign_key="supplier.supplier_id", nullable=False, index=True, description="Supplier ID reference")
     warehouse_id: int = Field(foreign_key="warehouse.warehouse_id", nullable=False, index=True, description="Warehouse ID reference")
     batch_number: Optional[str] = Field(default=None, description="Batch number of the item")
@@ -44,3 +32,4 @@ class StockIn(SQLModel, table=True):
     cost: float = Field(description="Cost price of the item in the stock entry")
     quantity: int = Field(default=0, description="Quantity added to stock")
     stock_in_date: Optional[str] = Field(default=None, description="Date the stock was added")
+    inventory : "Inventory" = Relationship(back_populates="stocks")

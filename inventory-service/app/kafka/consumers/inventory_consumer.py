@@ -16,14 +16,13 @@ async def consume_inventory_creation(topic, bootstrap_servers, session: Session)
 
     try:
         async for msg in consumer:
-            print("line 1")
             data = json.loads(msg.value.decode('utf-8'))
             product_id  = data['product_id']
             existing_inventory = session.get(Inventory, data['product_id'] )
             if existing_inventory:
                 print(f"Inventory entry for product_id {data['product_id']} already exists.")
                 continue
-            # print("line 2: Adding new inventory entry")
+            
             new_inventory = Inventory(
                 product_id = data['product_id'],
                 product_name = data['product_name'],

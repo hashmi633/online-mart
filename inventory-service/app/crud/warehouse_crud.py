@@ -2,8 +2,6 @@ from app.models.inventory_models import Warehouse
 from sqlmodel import Session, select
 from fastapi import HTTPException, Depends
 
-
-
 def add_to_warehouse(warehouse_data:Warehouse,session: Session):
     existing_warehouse = session.exec(select(Warehouse).where(warehouse_data.warehouse_id==Warehouse.warehouse_id)).first()
     if not existing_warehouse:

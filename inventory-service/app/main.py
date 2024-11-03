@@ -4,7 +4,7 @@ from app.routes.inventory_routes import router
 from typing import AsyncGenerator
 from app.db.db_connector import create_db_and_tables
 from fastapi.middleware.cors import CORSMiddleware
-from app.kafka_code import consume_messages
+from app.kafka.producers.producer import consume_messages
 from app.kafka.consumers.consumers_call import consumer_call
 import asyncio
 

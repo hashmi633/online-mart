@@ -1,9 +1,9 @@
-from app.models.inventory_models import InventoryItem, StockIn, Warehouse, Supplier
+from app.models.inventory_models import Inventory, StockIn, Warehouse, Supplier
 from sqlmodel import Session, select
 from fastapi import HTTPException, Depends
 
 def add_stock_in(stock_in:StockIn, session: Session):
-    existing_item = session.exec(select(InventoryItem).where(stock_in.item_id==InventoryItem.item_id)).first()
+    existing_item = session.exec(select(Inventory).where(stock_in.item_id==Inventory.item_id)).first()
 
     if existing_item:
         existing_supplier = session.exec(select(Supplier).where(stock_in.supplier_id==Supplier.supplier_id)).first()
@@ -18,6 +18,8 @@ def add_stock_in(stock_in:StockIn, session: Session):
                 status_code=404,
                 detail="Warehouse ID does not exist."
             )
+        
+        
         session.add(stock_in)
         session.commit()
         session.refresh(stock_in)

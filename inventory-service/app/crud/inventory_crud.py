@@ -1,14 +1,14 @@
-from app.models.inventory_models import InventoryItem, StockIn, Warehouse
+from app.models.inventory_models import Inventory, StockIn, Warehouse
 from app.crud.stockin_crud import calculate_stock_level
 from sqlmodel import Session, select
 from fastapi import HTTPException, Depends
-from app.kafka_code import get_kafka_producer
+from app.kafka.producers.producer import get_kafka_producer
 from aiokafka import AIOKafkaProducer
 from typing import Annotated
 import json
 
-def add_to_inventory(inventory_data:InventoryItem,session: Session):
-    existing_inventory = session.exec(select(InventoryItem).where(inventory_data.item_id==InventoryItem.item_id)).first()
+def add_to_inventory(inventory_data:Inventory,session: Session):
+    existing_inventory = session.exec(select(Inventory).where(inventory_data.item_id==Inventory.item_id)).first()
     if not existing_inventory:
         session.add(inventory_data)
         session.commit()
@@ -20,7 +20,7 @@ def add_to_inventory(inventory_data:InventoryItem,session: Session):
     )
 
 def get_to_inventory_item_by_id(id:int,session: Session):
-    find_inventory = session.exec(select(InventoryItem).where(id==InventoryItem.item_id)).first()
+    find_inventory = session.exec(select(Inventory).where(id==Inventory.item_id)).first()
     if find_inventory:
         return find_inventory
     raise HTTPException(
@@ -28,8 +28,8 @@ def get_to_inventory_item_by_id(id:int,session: Session):
         detail="no inventory exits with this id"
     )
 
-def update_to_inventory(id:int, inventory_data: InventoryItem, session: Session):
-    find_inventory = session.exec(select(InventoryItem).where(id==InventoryItem.item_id)).first()
+def update_to_inventory(id:int, inventory_data: Inventory, session: Session):
+    find_inventory = session.exec(select(Inventory).where(id==Inventory.item_id)).first()
     if find_inventory:
         if inventory_data.item_name is not None:
             find_inventory.item_name = inventory_data.item_name
@@ -50,7 +50,7 @@ def update_to_inventory(id:int, inventory_data: InventoryItem, session: Session)
 
 def delete_to_inventory(id:int,
                     session: Session):
-    to_delete_inventory = session.exec(select(InventoryItem).where(id==InventoryItem.item_id)).first()
+    to_delete_inventory = session.exec(select(Inventory).where(id==Inventory.item_id)).first()
     if not to_delete_inventory:
         raise HTTPException(
             status_code=404,
@@ -64,7 +64,7 @@ def delete_to_inventory(id:int,
     return f"InventoryItem with id: '{id}', name: '{to_delete_item_name}', category: '{to_delete_inventory_category}' has been deleted."
 
 def get_inventory_items_by_category(category_id: int, session: Session):
-    items = session.exec(select(InventoryItem).where(category_id==InventoryItem.category_id)).all()
+    items = session.exec(select(Inventory).where(category_id==Inventory.category_id)).all()
     
     if not items:
         raise HTTPException(
@@ -93,7 +93,7 @@ def get_inventory_items_by_warehouse(warehouse_id : int, session : Session):
     )
 
 def get_all_items(session: Session):
-    items = session.exec(select(InventoryItem)).all()
+    items = session.exec(select(Inventory)).all()
     if not items:
         raise HTTPException(
             status_code=404,
@@ -106,7 +106,7 @@ async def update_of_inventory(
          session: Session,
          producer: AIOKafkaProducer
         ):
-    inventory_item = session.get(InventoryItem, item_id)
+    inventory_item = session.get(Inventory, item_id)
     if not inventory_item:
         raise HTTPException(status_code=404, detail="Inventory item not found")
      # Use calculate_stock_level to get the total quantity
