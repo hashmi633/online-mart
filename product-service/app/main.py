@@ -1,7 +1,7 @@
 from fastapi import FastAPI
 from contextlib import asynccontextmanager
 from typing import AsyncGenerator
-from app.models.products import Products
+# from app.models.products_models import Product
 from app.db.db_connector import create_db_and_tables
 import asyncio
 from app.kafka_product import consume_inventory_updates

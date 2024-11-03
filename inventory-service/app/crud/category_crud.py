@@ -2,7 +2,6 @@ from app.models.inventory_models import Category
 from sqlmodel import Session, select
 from fastapi import HTTPException, Depends
 
-
 def add_to_category(category_data:Category,session: Session):
     existing_category = session.exec(select(Category).where(category_data.category_id==Category.category_id)).first()
     session.add(category_data)
@@ -36,7 +35,6 @@ def update_to_category(category_id:int, category_data: Category, session: Sessio
         status_code=404,
         detail="No Category exist with this id"
     )
-
 
 def delete_to_category(category_id:int,
                     session: Session):

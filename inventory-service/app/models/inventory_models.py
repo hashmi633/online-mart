@@ -27,6 +27,12 @@ class InventoryItem(SQLModel, table=True):
     category : Optional["Category"] = Relationship(back_populates='items')
     # You can add other basic fields related to the item but not purchase-specific data
 
+class Inventory(SQLModel, table=True):
+    product_id : int = Field(primary_key=True, description='ID matching the product ID')
+    product_name: str
+    description: str
+    quantity: int = Field(default=0, description="Available quantity of the product")
+
 class StockIn(SQLModel, table=True):
     stock_in_id : Optional[int] = Field(default=None, primary_key=True)
     item_id: int = Field(foreign_key="inventoryitem.item_id", nullable=False, description="Inventory Item reference")  
