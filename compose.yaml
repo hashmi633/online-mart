@@ -45,6 +45,20 @@ services:
     networks:
       - mart-network
 #=======================================================================================
+  order:
+    build: 
+      context: ./order-service
+      dockerfile: Dockerfile
+    container_name: khazir-mart-order
+    volumes:
+      - ./order-service:/code
+    depends_on:
+      - database
+    ports:
+      - "8004:8004"
+    networks:
+      - mart-network
+#=======================================================================================
   database:
     image: postgres:16
     restart: always
