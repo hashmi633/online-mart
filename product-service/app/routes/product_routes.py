@@ -2,7 +2,7 @@ from fastapi import APIRouter, Depends
 from app.db.db_connector import DB_SESSION
 from app.models.products_models import ProductPrice, ProductItem, ProductCategory
 from app.kafka_product import validate_inventory_item,inventory_cache, get_kafka_producer
-from app.crud.product_crud import product_creation, price_allocation
+from app.crud.product_crud import product_creation, price_allocation, get_all_products
 from app.crud.category_crud import add_to_category, get_to_category, update_to_category, delete_to_category, get_all_categories
 from typing import Annotated
 from aiokafka import AIOKafkaProducer
@@ -65,12 +65,13 @@ async def creation_of_product(
     return product
 
 @router.post('/product-price', tags=["Products"])
-def product_price(
+async def product_price(
         price_data: ProductPrice, 
-        session: DB_SESSION
+        session: DB_SESSION,
+        producer: Annotated[AIOKafkaProducer, Depends(get_kafka_producer)]
         ):
     
-    product_with_price = price_allocation(price_data, session)
+    product_with_price = await price_allocation(price_data, session, producer)
     return product_with_price
 
 @router.get('/product-name',  tags=["Products"])
@@ -80,5 +81,9 @@ def get_product_name(id: int,
     if product:
         return product.prices[0].price
 
+@router.get('/all-products', tags=["Products"])
+def all_products(session : DB_SESSION):
+    products = get_all_products(session)
+    return products
 
 

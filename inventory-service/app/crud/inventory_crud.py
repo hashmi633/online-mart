@@ -119,7 +119,8 @@ async def update_of_inventory(
     inventory_updates = {
         "inventory_item_id": item_id,  # Corresponds to item_id in InventoryItem table
         "quantity": total_quantity,
-        "status": status
+        "status": status,
+        "product_id": inventory_item.product_id
     }
 
     inventory_json = json.dumps(inventory_updates).encode("utf-8")

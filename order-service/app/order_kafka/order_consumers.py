@@ -1,22 +1,14 @@
-from aiokafka import AIOKafkaConsumer, AIOKafkaProducer
+from aiokafka import AIOKafkaConsumer
 import json
-from fastapi import HTTPException
 
 inventory_cache = {}
-
-async def get_kafka_producer():
-    producer = AIOKafkaProducer(bootstrap_servers='broker:19092')
-    await producer.start()
-    try:
-        yield producer
-    finally:
-        await producer.stop()
+product_cache = {}
 
 async def consume_inventory_updates():
     consumer = AIOKafkaConsumer(
         "inventory_updates",
         bootstrap_servers="broker:19092",
-        group_id='product-group',
+        group_id='order-group',
         auto_offset_reset="earliest"
     )
 
@@ -42,16 +34,30 @@ async def consume_inventory_updates():
     finally:
         await consumer.stop()
 
-def validate_inventory_item(inventory_item_id : int):
-    if inventory_item_id not in inventory_cache:
-        raise HTTPException(
-            status_code=400,
-            detail="Inventory item does not exist."
-        )
-    
-    item = inventory_cache[inventory_item_id]
-    if item['status'] == "out_of_stock":
-        raise HTTPException(
-            status_code=400,
-            detail="Inventory item is out of stock."
-        ) 
+async def consume_product_updates():
+    consumer = AIOKafkaConsumer(
+        "product_data",
+        bootstrap_servers="broker:19092",
+        group_id='product-order-group',
+        auto_offset_reset="earliest"
+    )
+
+    await consumer.start()
+
+    try:
+        async for msg in consumer:
+            data = json.loads(msg.value.decode("utf-8"))
+            product_id = data['product_id']
+            product_name = data['product_name']
+            price = data['price']
+
+            # Update the product cache
+            product_cache[product_id] = {
+                "product_name": product_name,
+                "price": price
+            }
+
+            print(f"Updated product cache: {product_cache[product_id]}")
+
+    finally:
+        await consumer.stop()
