@@ -1,5 +1,5 @@
 from fastapi import APIRouter
-from app.crud.order_crud import get_product_availability, get_product_data, add_in_cart
+from app.crud.order_crud import get_product_availability, get_product_data, add_in_cart, view_of_cart, delete_in_cart, update_of_cart
 from app.models.order_models import Cart
 from app.order_db.db_connector import DB_SESSION
 
@@ -22,4 +22,19 @@ def product_data(id: int):
 @router.post("/add-to-cart")
 def add_to_cart(cart: Cart, product_id: int, quantity: int, session: DB_SESSION):
     cart = add_in_cart(cart, product_id, quantity, session)
+    return cart
+
+@router.get("/view-cart")
+def view_cart(cart_id : int, session: DB_SESSION):
+    cart = view_of_cart(cart_id, session)
+    return cart
+
+@router.delete("/delete-item-from-cart")
+def delete_from_cart(product_id: int, cart_id: int, session: DB_SESSION):
+    delete_item = delete_in_cart(product_id, cart_id, session)
+    return delete_item
+
+@router.put('/update-cart')
+def update_cart(product_id: int, cart_id: int, quantity: int, session: DB_SESSION):
+    cart = update_of_cart(product_id, cart_id, quantity, session)
     return cart
