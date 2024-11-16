@@ -1,7 +1,7 @@
 from app.order_kafka.order_consumers import inventory_cache, product_cache
 from sqlmodel import Session, select
 from fastapi import HTTPException
-from app.models.order_models import Cart, CartItem
+from app.models.order_models import Cart, CartItem, OrderItem, Order
 
 def get_product_availability(id: int):
     inventory_from_cache = inventory_cache.get(id)
@@ -142,3 +142,89 @@ def view_of_cart(cart_id : int, session : Session):
         ],
         "total_price": total_price
     }
+
+def order_creation(cart_id: int, user_id: int, session: Session):
+    # Step 1: Retrieve the cart and its items
+    cart = session.get(Cart, cart_id)
+    if not cart:
+        raise HTTPException(
+            status_code=404,
+            detail="Cart not found"
+        )
+    
+    cart_items = session.exec(select(CartItem).where(CartItem.cart_id==cart_id)).all()
+    if not cart_items:
+        raise HTTPException(
+            status_code=400,
+            detail="Cart is empty"
+        )
+    print(cart_items)
+    # Step 2: Initialize order details
+    total_price = 0
+    items_data = []
+
+    # Step 3: Verify inventory and finalize prices
+    for item in cart_items:    
+        # Check availability and price from cache or Product and Inventory services
+        product_data = get_product_data(item.product_id)
+        product_availability = get_product_availability(item.product_id)
+        print("cache data available")
+        if not product_data or not product_availability:
+            raise HTTPException(
+            status_code=400,
+            detail="Product or inventory data not available"
+        )
+
+        # Check quantity
+        if item.quantity > product_availability.get("quantity", 0):
+            raise HTTPException(
+                status_code=400,
+                detail=f"Insufficient stock for product {item.product_id}"
+                )
+        
+        # Finalize item price and add to order total    
+        item_price = product_data.get("price", 0.0)
+        total_price += item.quantity * item_price
+        
+        # Prepare order item data
+
+        item_data = {
+            "product_id" : item.product_id,
+            "product_name" : product_data["product_name"],
+            "unit_price" : item_price,
+            "quantity" : item.quantity
+        }
+
+        items_data.append(item_data)
+
+    # Step 4: Create Order entry
+    order = Order(
+        user_id = user_id,
+        status = "pending",
+        total_price= total_price
+    )
+    session.add(order)
+    session.commit()
+    session.refresh(order) 
+
+    # Step 5: Add Order Items to Order
+    for item_data in items_data:
+        order_item = OrderItem(
+            order_id = order.order_id,
+            product_id= item_data.get("product_id"),
+            product_name= item_data.get("product_name"),
+            unit_price= item_data.get("unit_price"),
+            quantity= item_data.get("quantity")
+        )
+        session.add(order_item)
+    # Step 6: Deduct inventory levels and clear the cart
+
+    # Clear the cart and its items
+    session.query(CartItem).filter(CartItem.cart_id == cart_id).delete()  # Delete all cart items
+    session.delete(cart)
+    
+    # Commit all changes in one transaction
+    session.commit()
+
+    return {"message": "Order created successfully", "order_id": order.order_id}
+
