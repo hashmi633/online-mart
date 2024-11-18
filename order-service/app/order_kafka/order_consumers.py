@@ -1,8 +1,17 @@
-from aiokafka import AIOKafkaConsumer
+from aiokafka import AIOKafkaConsumer, AIOKafkaProducer
 import json
 
 inventory_cache = {}
 product_cache = {}
+
+async def get_kafka_producer():
+    producer = AIOKafkaProducer(bootstrap_servers='broker:19092')
+    await producer.start()
+    try:
+        yield producer
+    finally:
+        await producer.stop()
+
 
 async def consume_inventory_updates():
     consumer = AIOKafkaConsumer(

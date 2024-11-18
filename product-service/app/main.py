@@ -4,7 +4,7 @@ from typing import AsyncGenerator
 # from app.models.products_models import Product
 from app.db.db_connector import create_db_and_tables
 import asyncio
-from app.kafka_product import consume_inventory_updates
+from app.kafka_product import consume_inventory_updates, consume_products_requests
 from app.routes.product_routes import router
 
 @asynccontextmanager
@@ -12,6 +12,7 @@ async def lifespan(app:FastAPI)->AsyncGenerator[None, None]:
     print("Starting Applicaton...!")
     
     task = asyncio.create_task(consume_inventory_updates())
+    task1 = asyncio.create_task(consume_products_requests())
     create_db_and_tables()
     print("Product service started")
     yield

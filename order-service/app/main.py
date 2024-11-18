@@ -11,6 +11,7 @@ async def lifespan(app: FastAPI)->AsyncGenerator[None, None]:
     print("Starting Order Service")
     task = asyncio.create_task(consume_inventory_updates())
     task1 = asyncio.create_task(consume_product_updates())
+    # task2 = asyncio.create_task()
     create_db_and_tables()
     print("Order Service Started")
     yield

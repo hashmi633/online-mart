@@ -1,7 +1,10 @@
-from fastapi import APIRouter
+from fastapi import APIRouter, Depends
 from app.crud.order_crud import get_product_availability, get_product_data, add_in_cart, view_of_cart, delete_in_cart, update_of_cart, order_creation
 from app.models.order_models import Cart
 from app.order_db.db_connector import DB_SESSION
+from app.order_kafka.order_consumers import get_kafka_producer
+from typing import Annotated
+from aiokafka import AIOKafkaProducer
 
 router = APIRouter()
 
@@ -40,6 +43,6 @@ def update_cart(product_id: int, cart_id: int, quantity: int, session: DB_SESSIO
     return cart
 
 @router.post('/create-order')
-def create_order(cart_id: int, user_id: int, session: DB_SESSION):
-    order = order_creation(cart_id, user_id, session)
+async def create_order(cart_id: int, user_id: int, session: DB_SESSION, producer: Annotated[AIOKafkaProducer, Depends(get_kafka_producer)]):
+    order = await order_creation(cart_id, user_id, session, producer)
     return order

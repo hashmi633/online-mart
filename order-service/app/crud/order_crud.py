@@ -2,6 +2,8 @@ from app.order_kafka.order_consumers import inventory_cache, product_cache
 from sqlmodel import Session, select
 from fastapi import HTTPException
 from app.models.order_models import Cart, CartItem, OrderItem, Order
+from aiokafka import AIOKafkaProducer
+import json
 
 def get_product_availability(id: int):
     inventory_from_cache = inventory_cache.get(id)
@@ -143,7 +145,7 @@ def view_of_cart(cart_id : int, session : Session):
         "total_price": total_price
     }
 
-def order_creation(cart_id: int, user_id: int, session: Session):
+async def order_creation(cart_id: int, user_id: int, session: Session, producer: AIOKafkaProducer):
     # Step 1: Retrieve the cart and its items
     cart = session.get(Cart, cart_id)
     if not cart:
@@ -158,7 +160,15 @@ def order_creation(cart_id: int, user_id: int, session: Session):
             status_code=400,
             detail="Cart is empty"
         )
-    print(cart_items)
+    
+    # Step 2: Collect all product IDs from the cart
+    products_id = [item.product_id for item in cart_items]
+    
+    # Step 3: Request product details from Product Service via Kafka
+    request_data = {"product_ids": products_id}
+    await producer.send_and_wait("get_product_details", json.dumps(request_data).encode("utf-8"))
+    
+    
     # Step 2: Initialize order details
     total_price = 0
     items_data = []
