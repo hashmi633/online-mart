@@ -1,4 +1,4 @@
-from app.order_kafka.order_consumers import inventory_cache, product_cache
+from app.order_kafka.order_consumers import inventory_cache, product_cache, consume_product_responses
 from sqlmodel import Session, select
 from fastapi import HTTPException
 from app.models.order_models import Cart, CartItem, OrderItem, Order
@@ -154,6 +154,12 @@ async def order_creation(cart_id: int, user_id: int, session: Session, producer:
             detail="Cart not found"
         )
     
+    if cart.user_id != user_id:
+        raise HTTPException(
+            status_code=404,
+            detail=f"There is no cart with user id: {user_id}"
+        )
+    
     cart_items = session.exec(select(CartItem).where(CartItem.cart_id==cart_id)).all()
     if not cart_items:
         raise HTTPException(
@@ -168,39 +174,42 @@ async def order_creation(cart_id: int, user_id: int, session: Session, producer:
     request_data = {"product_ids": products_id}
     await producer.send_and_wait("get_product_details", json.dumps(request_data).encode("utf-8"))
     
-    
+    # Step 4: Wait for product details from Kafka response
+    product_details = await consume_product_responses()
+    if not product_details:
+        raise HTTPException(
+            status_code=400,
+            detail="Failed to retrieve product details"
+        )
     # Step 2: Initialize order details
     total_price = 0
     items_data = []
 
-    # Step 3: Verify inventory and finalize prices
+    # Step 3: Validate inventory and finalize order items
     for item in cart_items:    
-        # Check availability and price from cache or Product and Inventory services
-        product_data = get_product_data(item.product_id)
-        product_availability = get_product_availability(item.product_id)
-        print("cache data available")
-        if not product_data or not product_availability:
-            raise HTTPException(
-            status_code=400,
-            detail="Product or inventory data not available"
-        )
-
-        # Check quantity
-        if item.quantity > product_availability.get("quantity", 0):
+        product = next((p for p in product_details if p['product_id'] == item.product_id), None)
+        if not product:
             raise HTTPException(
                 status_code=400,
-                detail=f"Insufficient stock for product {item.product_id}"
-                )
+                detail=f"Product with ID {item.product_id} not found in Product Service"
+            )        
+        
+        # Check quantity
+        # if item.quantity > product_availability.get("quantity", 0):
+        #     raise HTTPException(
+        #         status_code=400,
+        #         detail=f"Insufficient stock for product {item.product_id}"
+        #         )
         
         # Finalize item price and add to order total    
-        item_price = product_data.get("price", 0.0)
+        item_price = product.get("price", 0.0)
         total_price += item.quantity * item_price
         
         # Prepare order item data
 
         item_data = {
             "product_id" : item.product_id,
-            "product_name" : product_data["product_name"],
+            "product_name" : product["product_name"],
             "unit_price" : item_price,
             "quantity" : item.quantity
         }
@@ -238,3 +247,6 @@ async def order_creation(cart_id: int, user_id: int, session: Session, producer:
 
     return {"message": "Order created successfully", "order_id": order.order_id}
 
+def all_orders(user_id: int , session : Session):
+    orders = session.exec(select(Order).where(Order.user_id==user_id)).all()
+    return orders
