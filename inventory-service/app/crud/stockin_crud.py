@@ -19,11 +19,15 @@ def add_stock_in(stock_in:StockIn, session: Session):
                 detail="Warehouse ID does not exist."
             )
         
-        
-        session.add(stock_in)
+    
+        existing_item.quantity += stock_in.quantity
+
+        # Add stock_in and update existing_item in one session operation
+        session.add_all([stock_in, existing_item])
         session.commit()
         session.refresh(stock_in)
-        return stock_in
+    
+        return {"stock_in": stock_in, "existing_item_quantity": existing_item.quantity}
     
     raise HTTPException(
          status_code=404,
