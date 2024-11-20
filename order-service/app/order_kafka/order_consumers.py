@@ -86,3 +86,19 @@ async def consume_product_responses():
             return products_data
     finally:
         await consumer.stop()
+
+async def consume_product_quantity_responses():
+    consumer = AIOKafkaConsumer(
+        "inventory_details_response",
+        bootstrap_servers='broker:19092',
+        group_id="order-product-quantity-group",
+        auto_offset_reset="earliest"
+    )
+    await consumer.start()
+    try:
+        async for message in consumer:
+            products_data = json.loads(message.value.decode("utf-8"))
+            print(f'Received product details: {products_data}')
+            return products_data
+    finally:
+        await consumer.stop()

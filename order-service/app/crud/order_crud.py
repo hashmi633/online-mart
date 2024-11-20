@@ -1,4 +1,4 @@
-from app.order_kafka.order_consumers import inventory_cache, product_cache, consume_product_responses
+from app.order_kafka.order_consumers import inventory_cache, product_cache, consume_product_responses, consume_product_quantity_responses
 from sqlmodel import Session, select
 from fastapi import HTTPException
 from app.models.order_models import Cart, CartItem, OrderItem, Order
@@ -176,7 +176,8 @@ async def order_creation(cart_id: int, user_id: int, session: Session, producer:
     
     # Step 4: Wait for product details from Kafka response
     product_details = await consume_product_responses()
-    if not product_details:
+    product_quantity_details = await consume_product_quantity_responses()
+    if not product_details or not product_quantity_details:
         raise HTTPException(
             status_code=400,
             detail="Failed to retrieve product details"
@@ -192,14 +193,21 @@ async def order_creation(cart_id: int, user_id: int, session: Session, producer:
             raise HTTPException(
                 status_code=400,
                 detail=f"Product with ID {item.product_id} not found in Product Service"
-            )        
-        
+            )      
+
+        product_quantity = next((p for p in product_quantity_details if p['product_id'] == item.product_id), None) 
+        if not product_quantity:
+            raise HTTPException(
+                status_code=400,
+                detail=f"Product with ID {item.product_id} not found in Inventory Service"
+            )      
+
         # Check quantity
-        # if item.quantity > product_availability.get("quantity", 0):
-        #     raise HTTPException(
-        #         status_code=400,
-        #         detail=f"Insufficient stock for product {item.product_id}"
-        #         )
+        if item.quantity > product_quantity.get("quantity", 0):
+            raise HTTPException(
+                status_code=400,
+                detail=f"Insufficient stock for product {item.product_id}"
+                )
         
         # Finalize item price and add to order total    
         item_price = product.get("price", 0.0)
