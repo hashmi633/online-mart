@@ -4,6 +4,7 @@ from fastapi import HTTPException
 from app.models.order_models import Cart, CartItem, OrderItem, Order
 from aiokafka import AIOKafkaProducer
 import json
+import logging
 
 def get_product_availability(id: int):
     inventory_from_cache = inventory_cache.get(id)
@@ -160,6 +161,8 @@ async def order_creation(cart_id: int, user_id: int, session: Session, producer:
             detail=f"There is no cart with user id: {user_id}"
         )
     
+    logging.info(f"Cart retrieved successfully for user_id={user_id}")
+    
     cart_items = session.exec(select(CartItem).where(CartItem.cart_id==cart_id)).all()
     if not cart_items:
         raise HTTPException(
@@ -167,14 +170,18 @@ async def order_creation(cart_id: int, user_id: int, session: Session, producer:
             detail="Cart is empty"
         )
     
+    logging.info(f"Retrieved {len(cart_items)} items from the cart.")
+    
     # Step 2: Collect all product IDs from the cart
     products_id = [item.product_id for item in cart_items]
+    logging.info(f"Collected product IDs: {products_id}")
     
     # Step 3: Request product details from Product Service via Kafka
     request_data = {"product_ids": products_id}
     await producer.send_and_wait("get_product_details", json.dumps(request_data).encode("utf-8"))
     
     # Step 4: Wait for product details from Kafka response
+    logging.info("Waiting for product details response from Kafka...")
     product_details = await consume_product_responses()
     product_quantity_details = await consume_product_quantity_responses()
     if not product_details or not product_quantity_details:
@@ -182,10 +189,13 @@ async def order_creation(cart_id: int, user_id: int, session: Session, producer:
             status_code=400,
             detail="Failed to retrieve product details"
         )
+    
+    logging.info("Successfully retrieved product details and inventory quantities.")
+
     # Step 2: Initialize order details
     total_price = 0
     items_data = []
-
+    logging.info("Validating inventory and finalizing order items...")
     # Step 3: Validate inventory and finalize order items
     for item in cart_items:    
         product = next((p for p in product_details if p['product_id'] == item.product_id), None)
@@ -201,7 +211,7 @@ async def order_creation(cart_id: int, user_id: int, session: Session, producer:
                 status_code=400,
                 detail=f"Product with ID {item.product_id} not found in Inventory Service"
             )      
-
+        print(product_quantity.get("quantity"))
         # Check quantity
         if item.quantity > product_quantity.get("quantity", 0):
             raise HTTPException(
@@ -223,8 +233,10 @@ async def order_creation(cart_id: int, user_id: int, session: Session, producer:
         }
 
         items_data.append(item_data)
+        logging.info(f"Finalized item data for product_id={item.product_id}: {item_data}")
 
     # Step 4: Create Order entry
+    logging.info("Creating order entry in the database...")
     order = Order(
         user_id = user_id,
         status = "pending",
@@ -233,7 +245,9 @@ async def order_creation(cart_id: int, user_id: int, session: Session, producer:
     session.add(order)
     session.commit()
     session.refresh(order) 
+    logging.info(f"Order created successfully with order_id={order.order_id}")
 
+    inventory = []
     # Step 5: Add Order Items to Order
     for item_data in items_data:
         order_item = OrderItem(
@@ -244,8 +258,25 @@ async def order_creation(cart_id: int, user_id: int, session: Session, producer:
             quantity= item_data.get("quantity")
         )
         session.add(order_item)
-    # Step 6: Deduct inventory levels and clear the cart
-
+        
+        # Step 6: Deduct inventory levels and clear the cart
+        inventory_deduction = {
+            "product_id": order_item.product_id,
+            "quantity": order_item.quantity
+        }
+        inventory.append(inventory_deduction)
+    
+    logging.info(f"Prepared inventory deduction data: {inventory}")
+    try:
+        logging.info("Sending inventory deduction request to Kafka...")
+        await producer.send_and_wait("inventory_deduction", json.dumps({"products": inventory}).encode('utf-8'))
+        logging.info("Inventory deduction request sent successfully.")
+    except Exception as e:
+        logging.error(f"Failed to send inventory deduction message: {e}")
+        raise HTTPException(
+            status_code=500,
+            detail="Failed to deduct inventory levels. Please try again."
+        )    
     # Clear the cart and its items
     session.query(CartItem).filter(CartItem.cart_id == cart_id).delete()  # Delete all cart items
     session.delete(cart)

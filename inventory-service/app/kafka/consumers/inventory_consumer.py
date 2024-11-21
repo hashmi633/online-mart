@@ -4,6 +4,7 @@ from app.models.inventory_models import Inventory
 from app.db.db_connector import engine
 from app.kafka.producers.producer import get_kafka_producer
 import json
+import logging
 
 async def consume_inventory_creation(topic, bootstrap_servers, session: Session):
     consumer = AIOKafkaConsumer(
@@ -78,4 +79,38 @@ async def consume_inventory_requests():
     finally:
         print("Cleaning up producer and consumer...")
         await producer_generator.aclose()  # Ensure the producer is cleaned up
+        consumer.stop()
+
+async def consume_inventory_deduction():
+    consumer = AIOKafkaConsumer(
+        "inventory_deduction",
+        bootstrap_servers="broker:19092",
+        group_id="order-inventory-deduction",
+        auto_offset_reset='earliest'
+    )
+    await consumer.start()
+
+    try:
+        async for msg in consumer:
+            data = json.loads(msg.value.decode('utf-8'))
+            products = data.get("products", [])
+            product_ids = [product.get("product_id") for product in products]
+            print(f"Decoded product_ids: {product_ids}")
+            with Session(engine) as session:
+                products_in_inventory = session.exec(select(Inventory).where(Inventory.product_id.in_(product_ids)))
+                for product in products_in_inventory:
+                    deducted_quantity = next(
+                        (p['quantity'] for p in products if p['product_id'] == product.product_id), 0
+                    )
+                    product.quantity -= deducted_quantity
+                    logging.info(f"Updated quantity for product_id {product.product_id}: {product.quantity}")
+                
+                session.commit()
+                print("Inventory quantities updated successfully.")
+
+    except Exception as e:
+        print(f"Critical error in consumer: {e}")
+    finally:
+        print("Cleaning up consumer...")
+        # await producer_generator.aclose()  # Ensure the producer is cleaned up
         consumer.stop()

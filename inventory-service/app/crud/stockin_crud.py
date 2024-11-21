@@ -70,3 +70,8 @@ def calculate_stock_level(id: int, session: Session):
     total_quantity = sum(entry.quantity for entry in stock_entries)
     return total_quantity
 
+def calculate_item_level(id: int, session: Session):
+    item = session.exec(select(Inventory).where(Inventory.product_id==id)).first()
+    item_quantity = item.quantity
+    return item_quantity
+
