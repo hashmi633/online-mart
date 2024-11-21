@@ -28,8 +28,8 @@ def add_to_cart(cart: Cart, product_id: int, quantity: int, session: DB_SESSION)
     return cart
 
 @router.get("/view-cart", tags=["Cart"])
-def view_cart(cart_id : int, session: DB_SESSION):
-    cart = view_of_cart(cart_id, session)
+def view_cart(user_id : int, session: DB_SESSION):
+    cart = view_of_cart(user_id, session)
     return cart
 
 @router.delete("/delete-item-from-cart", tags=["Cart"])
@@ -43,8 +43,8 @@ def update_cart(product_id: int, cart_id: int, quantity: int, session: DB_SESSIO
     return cart
 
 @router.post('/create-order', tags=["Order"])
-async def create_order(cart_id: int, user_id: int, session: DB_SESSION, producer: Annotated[AIOKafkaProducer, Depends(get_kafka_producer)]):
-    order = await order_creation(cart_id, user_id, session, producer)
+async def create_order(user_id: int, session: DB_SESSION, producer: Annotated[AIOKafkaProducer, Depends(get_kafka_producer)]):
+    order = await order_creation(user_id, session, producer)
     return order
 
 @router.get('/all-orders', tags=['Order'])

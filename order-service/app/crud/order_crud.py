@@ -122,18 +122,18 @@ def delete_in_cart(product_id: int, cart_id: int, session: Session):
     
     return {"message": "Item deleted successfully"}
 
-def view_of_cart(cart_id : int, session : Session):
-    cart = session.get(Cart, cart_id)
+def view_of_cart(user_id : int, session : Session):
+    cart = session.exec(select(Cart).where(Cart.user_id== user_id)).first()
     if not cart:
         raise HTTPException(
             status_code=404,
             detail="Cart not found"
         )
-    cart_items = session.exec(select(CartItem).where(CartItem.cart_id==cart_id)).all()
+    cart_items = session.exec(select(CartItem).where(CartItem.cart_id==cart.cart_id)).all()
     total_price = sum(item.quantity * item.unit_price for item in cart_items)
 
     return{
-        "cart_id": cart_id,
+        "cart_id": cart.cart_id,
         "items": [
             {
                 "product_id": item.product_id,
@@ -146,24 +146,16 @@ def view_of_cart(cart_id : int, session : Session):
         "total_price": total_price
     }
 
-async def order_creation(cart_id: int, user_id: int, session: Session, producer: AIOKafkaProducer):
+async def order_creation(user_id: int, session: Session, producer: AIOKafkaProducer):
     # Step 1: Retrieve the cart and its items
-    cart = session.get(Cart, cart_id)
+    cart = session.exec(select(Cart).where(Cart.user_id==user_id)).first()
     if not cart:
         raise HTTPException(
             status_code=404,
             detail="Cart not found"
         )
     
-    if cart.user_id != user_id:
-        raise HTTPException(
-            status_code=404,
-            detail=f"There is no cart with user id: {user_id}"
-        )
-    
-    logging.info(f"Cart retrieved successfully for user_id={user_id}")
-    
-    cart_items = session.exec(select(CartItem).where(CartItem.cart_id==cart_id)).all()
+    cart_items = session.exec(select(CartItem).where(CartItem.cart_id==cart.cart_id)).all()
     if not cart_items:
         raise HTTPException(
             status_code=400,
@@ -278,7 +270,7 @@ async def order_creation(cart_id: int, user_id: int, session: Session, producer:
             detail="Failed to deduct inventory levels. Please try again."
         )    
     # Clear the cart and its items
-    session.query(CartItem).filter(CartItem.cart_id == cart_id).delete()  # Delete all cart items
+    session.query(CartItem).filter(CartItem.cart_id == cart.cart_id).delete()  # Delete all cart items
     session.delete(cart)
     
     # Commit all changes in one transaction
