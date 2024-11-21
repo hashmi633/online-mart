@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Depends
 from app.db.db_connector import DB_SESSION
 from app.models.products_models import ProductPrice, ProductItem, ProductCategory
-from app.kafka_product import validate_inventory_item, get_kafka_producer
+from app.kafka_product import get_kafka_producer
 from app.crud.product_crud import product_creation, price_allocation, get_all_products
 from app.crud.category_crud import add_to_category, get_to_category, update_to_category, delete_to_category, get_all_categories
 from typing import Annotated
@@ -79,7 +79,7 @@ def get_product_name(id: int,
                      session: DB_SESSION):
     product = session.get(ProductItem, id)
     if product:
-        return product.prices[0].price
+        return product.product_name
 
 @router.get('/all-products', tags=["Products"])
 def all_products(session : DB_SESSION):

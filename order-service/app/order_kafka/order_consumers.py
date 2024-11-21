@@ -25,18 +25,16 @@ async def consume_inventory_updates():
 
     try:
         async for msg in consumer:
-            data = json.loads(msg.value.decode("utf-8"))
-            product_id = data["product_id"]
-            inventory_item_id = data['inventory_item_id']
-            quantity = data['quantity']
-            status = data['status']
+            products = json.loads(msg.value.decode("utf-8"))
+            
+            for product in products:
+                product_id = product["product_id"]
+                quantity = product['quantity']
 
-            # Update the local cache
-            inventory_cache[product_id] = {
-                "inventory_item_id" : inventory_item_id, 
-                "quantity": quantity,
-                "status": status
-            }
+                # Update the local cache
+                inventory_cache[product_id] = { 
+                    "quantity": quantity
+                }
 
             print(f"Updated inventory cache: {inventory_cache}")
 

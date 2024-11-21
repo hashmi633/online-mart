@@ -65,13 +65,6 @@ def get_stock_in_entries_by_warehouse(id: int, session: Session):
     return item
 
 def calculate_stock_level(id: int, session: Session):
-    stock_entries = session.exec(select(StockIn).where(id==StockIn.item_id)).all()
-
-    total_quantity = sum(entry.quantity for entry in stock_entries)
-    return total_quantity
-
-def calculate_item_level(id: int, session: Session):
     item = session.exec(select(Inventory).where(Inventory.product_id==id)).first()
     item_quantity = item.quantity
     return item_quantity
-

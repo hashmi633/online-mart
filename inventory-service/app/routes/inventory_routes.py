@@ -4,7 +4,7 @@ from app.db.db_connector import DB_SESSION
 from app.crud.warehouse_crud import add_to_warehouse, get_to_warehouse, update_to_warehouse, delete_to_warehouse, list_all_warehouses
 from app.crud.supplier_crud import add_to_supplier, get_to_supplier, update_to_supplier, delete_to_supplier,get_all_suppliers
 from app.crud.inventory_crud import add_to_inventory, get_to_inventory_item_by_id, update_to_inventory, delete_to_inventory, get_inventory_items_by_category, get_inventory_items_by_warehouse, get_all_items, update_of_inventory
-from app.crud.stockin_crud import add_stock_in, get_stock_in_entries_by_item, get_stock_in_entries_by_supplier, get_stock_in_entries_by_warehouse, calculate_stock_level, calculate_item_level
+from app.crud.stockin_crud import add_stock_in, get_stock_in_entries_by_item, get_stock_in_entries_by_supplier, get_stock_in_entries_by_warehouse, calculate_stock_level
 from typing import Annotated
 from app.shared_helper import validate_token
 from app.kafka.producers.producer import get_kafka_producer
@@ -207,9 +207,3 @@ def get_stock_level(item_id: int,
     stock_level = calculate_stock_level(item_id, session)
     return stock_level
 
-@router.get("/inventory/{item_id}/item-level", tags=['StockIn'])
-def get_inventory_level(item_id: int,
-                    session : DB_SESSION
-                    ):
-    inventory = calculate_item_level(item_id, session)
-    return inventory

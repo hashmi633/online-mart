@@ -1,5 +1,5 @@
 from app.models.inventory_models import Inventory, StockIn, Warehouse
-from app.crud.stockin_crud import calculate_item_level
+from app.crud.stockin_crud import calculate_stock_level
 from sqlmodel import Session, select
 from fastapi import HTTPException, Depends
 from app.kafka.producers.producer import get_kafka_producer
@@ -110,18 +110,15 @@ async def update_of_inventory(
     if not inventory_item:
         raise HTTPException(status_code=404, detail="Inventory item not found")
      # Use calculate_stock_level to get the total quantity
-    total_quantity = calculate_item_level(item_id, session)
-
-    # Determine status based on quantity
-    status = "available" if total_quantity > 0 else "out_of_stock"
+    total_quantity = calculate_stock_level(item_id, session)
 
     # Prepare the Kafka message
-    inventory_updates = {
-        "inventory_item_id": item_id,  # Corresponds to item_id in InventoryItem table
+    inventory_updates = [
+        {
         "quantity": total_quantity,
-        "status": status,
         "product_id": inventory_item.product_id
-    }
+        }
+                        ]
 
     inventory_json = json.dumps(inventory_updates).encode("utf-8")
 

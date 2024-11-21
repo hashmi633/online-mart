@@ -1,4 +1,4 @@
-from app.models.products_models import  ProductPrice, ProductItem, ProductCategory
+from app.models.products_models import  ProductPrice, ProductItem
 from sqlmodel import Session, select
 from fastapi import HTTPException
 from aiokafka import AIOKafkaProducer

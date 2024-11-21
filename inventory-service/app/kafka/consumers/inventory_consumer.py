@@ -81,6 +81,7 @@ async def consume_inventory_requests():
         await producer_generator.aclose()  # Ensure the producer is cleaned up
         consumer.stop()
 
+
 async def consume_inventory_deduction():
     consumer = AIOKafkaConsumer(
         "inventory_deduction",
@@ -90,12 +91,16 @@ async def consume_inventory_deduction():
     )
     await consumer.start()
 
+    producer_generator = get_kafka_producer()
+    producer = await producer_generator.__anext__()  # Get the producer
+
     try:
         async for msg in consumer:
             data = json.loads(msg.value.decode('utf-8'))
             products = data.get("products", [])
             product_ids = [product.get("product_id") for product in products]
             print(f"Decoded product_ids: {product_ids}")
+            inventory_updates= []
             with Session(engine) as session:
                 products_in_inventory = session.exec(select(Inventory).where(Inventory.product_id.in_(product_ids)))
                 for product in products_in_inventory:
@@ -103,14 +108,21 @@ async def consume_inventory_deduction():
                         (p['quantity'] for p in products if p['product_id'] == product.product_id), 0
                     )
                     product.quantity -= deducted_quantity
-                    logging.info(f"Updated quantity for product_id {product.product_id}: {product.quantity}")
+                    inventory_update = {
+                        "quantity": product.quantity,
+                        "product_id": product.product_id
+                    }
+                    inventory_updates.append(inventory_update)
+                    print(f"Updated quantity for product_id {product.product_id}: {product.quantity}")
                 
                 session.commit()
+                await producer.send_and_wait("inventory_updates", json.dumps(inventory_updates).encode('utf-8'))
                 print("Inventory quantities updated successfully.")
+
 
     except Exception as e:
         print(f"Critical error in consumer: {e}")
     finally:
         print("Cleaning up consumer...")
-        # await producer_generator.aclose()  # Ensure the producer is cleaned up
+        await producer_generator.aclose()  # Ensure the producer is cleaned up
         consumer.stop()
