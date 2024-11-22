@@ -103,15 +103,19 @@ async def consume_inventory_deduction():
             inventory_updates= []
             with Session(engine) as session:
                 products_in_inventory = session.exec(select(Inventory).where(Inventory.product_id.in_(product_ids)))
+                
                 for product in products_in_inventory:
                     deducted_quantity = next(
                         (p['quantity'] for p in products if p['product_id'] == product.product_id), 0
                     )
+                
                     product.quantity -= deducted_quantity
+                
                     inventory_update = {
                         "quantity": product.quantity,
                         "product_id": product.product_id
                     }
+                
                     inventory_updates.append(inventory_update)
                     print(f"Updated quantity for product_id {product.product_id}: {product.quantity}")
                 

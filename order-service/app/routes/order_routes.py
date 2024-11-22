@@ -1,5 +1,5 @@
 from fastapi import APIRouter, Depends
-from app.crud.order_crud import get_product_availability, get_product_data, add_in_cart, view_of_cart, delete_in_cart, update_of_cart, order_creation, all_orders
+from app.crud.order_crud import get_product_availability, get_product_data, add_in_cart, view_of_cart, delete_in_cart, update_of_cart, order_creation, all_orders, all_carts
 from app.models.order_models import Cart
 from app.order_db.db_connector import DB_SESSION
 from app.order_kafka.order_consumers import get_kafka_producer
@@ -33,13 +33,13 @@ def view_cart(user_id : int, session: DB_SESSION):
     return cart
 
 @router.delete("/delete-item-from-cart", tags=["Cart"])
-def delete_from_cart(product_id: int, cart_id: int, session: DB_SESSION):
-    delete_item = delete_in_cart(product_id, cart_id, session)
+def delete_from_cart(product_id: int, user_id: int, session: DB_SESSION):
+    delete_item = delete_in_cart(product_id, user_id, session)
     return delete_item
 
 @router.put('/update-cart', tags=["Cart"])
-def update_cart(product_id: int, cart_id: int, quantity: int, session: DB_SESSION):
-    cart = update_of_cart(product_id, cart_id, quantity, session)
+def update_cart(product_id: int, user_id: int, quantity: int, session: DB_SESSION):
+    cart = update_of_cart(product_id, user_id, quantity, session)
     return cart
 
 @router.post('/create-order', tags=["Order"])
@@ -51,3 +51,8 @@ async def create_order(user_id: int, session: DB_SESSION, producer: Annotated[AI
 def list_all_orders(user_id: int, session: DB_SESSION):
     orders = all_orders(user_id, session)
     return orders
+
+@router.get('/all-carts', tags=['Cart'])
+def list_all_carts(session: DB_SESSION):
+    carts = all_carts(session)
+    return carts 

@@ -81,10 +81,10 @@ def add_in_cart(cart: Cart, product_id : int, quantity : int, session: Session):
     session.refresh(cart_item)
     return cart_item
 
-def update_of_cart(product_id: int, cart_id: int, quantity: int, session: Session):
+def update_of_cart(product_id: int, user_id: int, quantity: int, session: Session):
     # Retrieve the cart item by product_id and cart_id
     cart_item = session.exec(
-        select(CartItem).where(CartItem.cart_id == cart_id, CartItem.product_id == product_id)
+        select(CartItem).where(CartItem.cart.user_id == user_id, CartItem.product_id == product_id)
     ).first()
 
     if not cart_item:
@@ -107,9 +107,9 @@ def update_of_cart(product_id: int, cart_id: int, quantity: int, session: Sessio
     
     return {"message": message, "cart_item": cart_item if quantity > 0 else None}
 
-def delete_in_cart(product_id: int, cart_id: int, session: Session):
+def delete_in_cart(product_id: int, user_id: int, session: Session):
     # Retrieve the cart item by product_id and cart_id
-    cart_item = session.exec(select(CartItem).where(CartItem.cart_id==cart_id, CartItem.product_id==product_id)).first()
+    cart_item = session.exec(select(CartItem).where(CartItem.cart.user_id==user_id, CartItem.product_id==product_id)).first()
     if not cart_item:
         raise HTTPException(
             status_code=404,
@@ -281,3 +281,16 @@ async def order_creation(user_id: int, session: Session, producer: AIOKafkaProdu
 def all_orders(user_id: int , session : Session):
     orders = session.exec(select(Order).where(Order.user_id==user_id)).all()
     return orders
+
+def all_carts(session: Session):
+    carts = session.exec(select(Cart)).all()
+    all_carts = [
+        {
+            "cart_id": cart.cart_id,
+            "user_id": cart.user_id,
+            "items": [item for item in cart.items] if hasattr(cart, "items") else []
+        }
+        for cart in carts
+    ]
+
+    return all_carts
