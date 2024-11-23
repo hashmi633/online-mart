@@ -59,6 +59,21 @@ services:
     networks:
       - mart-network
 #=======================================================================================
+  notification:
+    build: 
+      context: ./notification-service
+      dockerfile: Dockerfile
+    container_name: khazir-mart-notification
+    volumes:
+      - ./notification-service:/code
+    depends_on:
+      - database
+    ports:
+      - "8005:8005"
+    networks:
+      - mart-network
+#=======================================================================================
+
   database:
     image: postgres:16
     restart: always

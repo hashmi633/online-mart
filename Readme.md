@@ -20,7 +20,7 @@ Manages user accounts, authentication, and role-based access control.
 - **Technology Stack**:
   - FastAPI, SQLModel, PostgreSQL, Kafka.
 
-[Read the User Service README](./user_service/README.md)
+<!-- [Read the User Service README](./user_service/README.md) -->
 
 ---
 
@@ -34,7 +34,7 @@ Handles order creation, management, and status updates.
 - **Technology Stack**:
   - FastAPI, SQLModel, PostgreSQL, Kafka.
 
-[Read the Order Service README](./order_service/README.md)
+<!-- [Read the Order Service README](./order_service/README.md) -->
 
 ---
 
@@ -48,7 +48,7 @@ Manages product categories, product details, and pricing.
 - **Technology Stack**:
   - FastAPI, SQLModel, PostgreSQL, Kafka.
 
-[Read the Product Service README](./product_service/README.md)
+<!-- [Read the Product Service README](./product_service/README.md) -->
 
 ---
 
@@ -62,7 +62,7 @@ Tracks inventory levels, warehouse data, and supplier details.
 - **Technology Stack**:
   - FastAPI, SQLModel, PostgreSQL, Kafka.
 
-[Read the Inventory Service README](./inventory_service/README.md)
+<!-- [Read the Inventory Service README](./inventory_service/README.md) -->
 
 ---
 
@@ -91,7 +91,7 @@ Sends user notifications related to order events, payment status, and shipping u
   - FastAPI, Kafka
   <!-- , SMTP. -->
 
-[Read the Notification Service README](./notification_service/README.md)
+<!-- [Read the Notification Service README](./notification_service/README.md) -->
 
 ---
 

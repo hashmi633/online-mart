@@ -27,7 +27,7 @@ COPY . /code/
 
 
 # Make port 8003 available to the world outside this container
-EXPOSE 8003
+EXPOSE 8005
 
 # Run the app. CMD can be overridden when starting the container
-CMD ["poetry", "run", "uvicorn", "app.main:app", "--host", "0.0.0.0","--port","8003" "--reload"]
+CMD ["poetry", "run", "uvicorn", "app.main:app", "--host", "0.0.0.0","--port","8005", "--reload"]
