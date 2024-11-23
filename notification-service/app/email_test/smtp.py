@@ -1,12 +1,13 @@
 import smtplib
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
+from settings import EMAIL, PASSWORD
 
 # Email configuration
 SMTP_SERVER = "smtp.gmail.com"
 SMTP_PORT = 587
-EMAIL_USERNAME = "hashmi633@gmail.com"
-EMAIL_PASSWORD = "fddz gxmp ljsz jxar"
+EMAIL_USERNAME = EMAIL
+EMAIL_PASSWORD = PASSWORD
 
 def to_send_email(to_email, subject, body):
     try:
@@ -29,7 +30,7 @@ def to_send_email(to_email, subject, body):
 
     except Exception as e:
         print(f"Failed to send email: {e}")
-
+        return {"Failed to send email"}
     
 # Test the function
 # send_email(
