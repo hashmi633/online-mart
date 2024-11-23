@@ -84,8 +84,7 @@ def get_all_users(
 
 @router.get('/get-token')
 def get_token(session: DB_SESSION, email: str):
-
-    generated_token = create_access_token({"sub": email})
+    generated_token = create_access_token({"sub": email, "role": "admin"})
     admin_verification =get_current_admin(generated_token)
     return admin_verification
 
