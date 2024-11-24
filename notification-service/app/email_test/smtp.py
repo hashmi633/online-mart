@@ -9,7 +9,7 @@ SMTP_PORT = 587
 EMAIL_USERNAME = EMAIL
 EMAIL_PASSWORD = PASSWORD
 
-def to_send_email(to_email, subject, body):
+async def to_send_email(to_email, subject, body):
     try:
         # Set up the MIME
         message = MIMEMultipart()
@@ -25,7 +25,7 @@ def to_send_email(to_email, subject, body):
             server.starttls()
             server.login(EMAIL_USERNAME, EMAIL_PASSWORD)
             server.send_message(message)
-        print(f"Email sent successfully to {to_email}!")
+        print(f"Email sent successfully to {to_email}")
         return {"Email sent successfully"}
 
     except Exception as e:
@@ -38,3 +38,4 @@ def to_send_email(to_email, subject, body):
 #     subject="Order Created - Pending",
 #     body="Your order has been successfully created and is currently pending. Thank you!"
 # )
+

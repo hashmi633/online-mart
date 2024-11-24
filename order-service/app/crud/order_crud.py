@@ -148,6 +148,7 @@ def view_of_cart(user_id : int, session : Session):
 
 async def order_creation(token: str, session: Session, producer: AIOKafkaProducer):
     user_id = token.get("user_id")
+    user_name = token.get("user_name")
     email_address = token.get("sub")
 
     # Step 1: Retrieve the cart and its items
@@ -277,6 +278,7 @@ async def order_creation(token: str, session: Session, producer: AIOKafkaProduce
     order_details = {
         "order_id": order.order_id,
         "user_id": user_id,
+        "user_name": user_name,
         "user_email": email_address,
         "order_status": order.status,
         # "order_date": order.created_at,

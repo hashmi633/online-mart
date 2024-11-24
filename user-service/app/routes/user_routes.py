@@ -54,7 +54,7 @@ def update_user(
 @router.delete("/delete_user")
 def delete_user(
     session: DB_SESSION,
-    admin: dict = Depends(get_current_admin), 
+    # admin: dict = Depends(get_current_admin), 
     user_id_to_delete: int = Query(..., description="ID of the user to delete")
     ):
     deleted_user = delete_user_by_id(user_id_to_delete, session)
