@@ -146,7 +146,10 @@ def view_of_cart(user_id : int, session : Session):
         "total_price": total_price
     }
 
-async def order_creation(user_id: int, session: Session, producer: AIOKafkaProducer):
+async def order_creation(token: str, session: Session, producer: AIOKafkaProducer):
+    user_id = token.get("user_id")
+    email_address = token.get("sub")
+
     # Step 1: Retrieve the cart and its items
     cart = session.exec(select(Cart).where(Cart.user_id==user_id)).first()
     if not cart:
@@ -269,6 +272,22 @@ async def order_creation(user_id: int, session: Session, producer: AIOKafkaProdu
             status_code=500,
             detail="Failed to deduct inventory levels. Please try again."
         )    
+    
+    # Notification Data
+    order_details = {
+        "order_id": order.order_id,
+        "user_id": user_id,
+        "user_email": email_address,
+        "order_status": order.status,
+        # "order_date": order.created_at,
+        "total_amount": order.total_price,
+        "message": "Your order has been successfully created and is currently pending.",
+        "token": token
+    }
+
+    order_data = {"order_details": order_details}
+    await producer.send_and_wait("order_notification", json.dumps(order_data).encode("utf-8"))
+
     # Clear the cart and its items
     session.query(CartItem).filter(CartItem.cart_id == cart.cart_id).delete()  # Delete all cart items
     session.delete(cart)

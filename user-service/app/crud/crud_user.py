@@ -93,7 +93,7 @@ def admin_or_user(username: str, password: str, session: Session):
     user = session.exec(select(User).where(User.user_email == username)).first()
 
     if admin and pwd_context.verify(password, admin.admin_password):
-        access_token = create_access_token({"sub": username, "role": "admin"})
+        access_token = create_access_token({"sub": username, "role": "admin", "user_id": admin.admin_id})
         return {"access_token": access_token, "token_type":"Bearer"}
     elif user and password == user.user_password:
         access_token = create_access_token({"sub": username, "role": "user", "user_id": user.user_id})

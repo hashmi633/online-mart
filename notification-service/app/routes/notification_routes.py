@@ -17,5 +17,5 @@ def send_email(to_email, subject, body):
 
 @router.get("/get-token")
 def get_token(token: Annotated[str, Depends(validate_token)]):
-    email = token.get("sub")
-    return email
+    email_address = token.get("sub")
+    return email_address

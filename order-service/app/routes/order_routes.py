@@ -5,6 +5,7 @@ from app.order_db.db_connector import DB_SESSION
 from app.order_kafka.order_consumers import get_kafka_producer
 from typing import Annotated
 from aiokafka import AIOKafkaProducer
+from app.oath2 import validate_token
 
 router = APIRouter()
 
@@ -23,7 +24,7 @@ def product_data(id: int):
     return data
 
 @router.post("/add-to-cart", tags=["Cart"])
-def add_to_cart(cart: Cart, product_id: int, quantity: int, session: DB_SESSION):
+def add_to_cart(cart: Cart, product_id: int, quantity: int, session: DB_SESSION, token: Annotated[str, Depends(validate_token)]):
     cart = add_in_cart(cart, product_id, quantity, session)
     return cart
 
@@ -33,18 +34,18 @@ def view_cart(user_id : int, session: DB_SESSION):
     return cart
 
 @router.delete("/delete-item-from-cart", tags=["Cart"])
-def delete_from_cart(product_id: int, user_id: int, session: DB_SESSION):
+def delete_from_cart(product_id: int, user_id: int, session: DB_SESSION, token: Annotated[str, Depends(validate_token)]):
     delete_item = delete_in_cart(product_id, user_id, session)
     return delete_item
 
 @router.put('/update-cart', tags=["Cart"])
-def update_cart(product_id: int, user_id: int, quantity: int, session: DB_SESSION):
+def update_cart(product_id: int, user_id: int, quantity: int, session: DB_SESSION, token: Annotated[str, Depends(validate_token)]):
     cart = update_of_cart(product_id, user_id, quantity, session)
     return cart
 
 @router.post('/create-order', tags=["Order"])
-async def create_order(user_id: int, session: DB_SESSION, producer: Annotated[AIOKafkaProducer, Depends(get_kafka_producer)]):
-    order = await order_creation(user_id, session, producer)
+async def create_order(session: DB_SESSION, producer: Annotated[AIOKafkaProducer, Depends(get_kafka_producer)], token: Annotated[str, Depends(validate_token)]):
+    order = await order_creation(token, session, producer)
     return order
 
 @router.get('/all-orders', tags=['Order'])
