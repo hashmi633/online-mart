@@ -1,7 +1,7 @@
 import smtplib
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
-from settings import EMAIL, PASSWORD
+from app.settings import EMAIL, PASSWORD
 
 # Email configuration
 SMTP_SERVER = "smtp.gmail.com"
