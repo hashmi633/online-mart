@@ -1,11 +1,11 @@
 from fastapi import APIRouter, Depends
-from app.crud.order_crud import get_product_availability, get_product_data, add_in_cart, view_of_cart, delete_in_cart, update_of_cart, order_creation, all_orders, all_carts
+from app.crud.order_crud import get_product_availability, get_product_data, add_in_cart, view_of_cart, delete_in_cart, update_of_cart, order_creation, signedin_user_orders, all_carts, all_orders, user_orders
 from app.models.order_models import Cart
 from app.order_db.db_connector import DB_SESSION
 from app.order_kafka.order_consumers import get_kafka_producer
 from typing import Annotated
 from aiokafka import AIOKafkaProducer
-from app.oath2 import validate_token
+from app.oath2 import validate_token, admin_validate_token
 
 router = APIRouter()
 
@@ -48,12 +48,22 @@ async def create_order(session: DB_SESSION, producer: Annotated[AIOKafkaProducer
     order = await order_creation(token, session, producer)
     return order
 
+@router.get('/signedin-user-orders', tags=['Order'])
+def signedin_orders(session: DB_SESSION, token: Annotated[str, Depends(validate_token)]):
+    orders = signedin_user_orders(session, token)
+    return orders
+
+@router.get('/user-orders', tags=['Order'])
+def user_all_orders(user_id:int, session: DB_SESSION, token: Annotated[str, Depends(admin_validate_token)]):
+    orders = user_orders(session, user_id)
+    return orders
+
 @router.get('/all-orders', tags=['Order'])
-def list_all_orders(user_id: int, session: DB_SESSION):
-    orders = all_orders(user_id, session)
+def orders(session: DB_SESSION, token: Annotated[str, Depends(admin_validate_token)]):
+    orders = all_orders(session)
     return orders
 
 @router.get('/all-carts', tags=['Cart'])
-def list_all_carts(session: DB_SESSION):
+def list_all_carts(session: DB_SESSION, token: Annotated[str, Depends(admin_validate_token)]):
     carts = all_carts(session)
     return carts 

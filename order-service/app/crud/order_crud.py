@@ -299,9 +299,28 @@ async def order_creation(token: str, session: Session, producer: AIOKafkaProduce
 
     return {"message": "Order created successfully", "order_id": order.order_id}
 
-def all_orders(user_id: int , session : Session):
+def signedin_user_orders(session : Session, token: str):
+    user_id = token.get("user_id")
+    
+    if not user_id:
+        raise HTTPException(
+            status_code=404,
+            detail="User accesss require"
+        )
+    else:   
+        orders = session.exec(select(Order).where(Order.user_id==user_id)).all()
+        return orders    
+    
+def user_orders(session : Session, user_id: int):
     orders = session.exec(select(Order).where(Order.user_id==user_id)).all()
-    return orders
+    return orders        
+
+
+
+def all_orders(session : Session):
+    orders = session.exec(select(Order)).all()
+    return orders    
+
 
 def all_carts(session: Session):
     carts = session.exec(select(Cart)).all()

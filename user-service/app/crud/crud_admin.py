@@ -1,5 +1,4 @@
 from sqlmodel import Session, select
-from app.models.user_models import User
 from app.models.admin_model import Admin, SubAdmin
 from app.db.db_connector import DB_SESSION,get_session
 from fastapi import HTTPException
@@ -7,9 +6,7 @@ from passlib.context import CryptContext
 from app.helpers.jwt_helper import create_access_token, oath2_scheme, verify_token
 from fastapi import Depends
 from typing import Annotated
-
-ADMIN_EMAIL = "khazir@khazir.com"
-ADMIN_PASSWORD = "khazirpassword"
+from app.settings import ADMIN_EMAIL, ADMIN_PASSWORD
 
 pwd_context = CryptContext(schemes=['bcrypt'], deprecated="auto")
 
@@ -47,27 +44,9 @@ def admin_authentication(admin_email:str, admin_password:str,session: Session):
     access_token = create_access_token({"sub": admin_email, "role": "admin"})
     return {"access_token": access_token, "token_type": "bearer"}
 
-def get_current_admin(token: str):
+def get_admin_access(token: Annotated[str, Depends(oath2_scheme)]):
     print(token)
-    return get_current_user_by_role(token, role="admin")
-
-def get_current_user_by_role(token: str, role : str):
-    try:
-        payload = verify_token(token)   
-    except HTTPException as e:
-        if e.detail == "Token has expired":
-            raise HTTPException(
-                status_code=401, 
-                detail="Token has expired, please log in again."
-            )
-        else:
-            raise e
-    if payload.get("role") != role:
-        raise HTTPException(
-            status_code=403, 
-            detail=f"{role.capitalize()} access required"
-        )
-    return payload
+    return verify_token(token, role="admin")
     
 def sub_admin(sub_admin_detail: SubAdmin, session: Session):
     admin = session.exec(select(SubAdmin).where(SubAdmin.admin_email == sub_admin_detail.admin_email)).first()

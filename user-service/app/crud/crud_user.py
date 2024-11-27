@@ -1,12 +1,13 @@
 from sqlmodel import Session, select
-from app.models.user_models import UserModel, User, UserUpdate
+from app.models.user_models import User, UserUpdate
 from app.models.admin_model import Admin
-from app.crud.crud_admin import get_current_user_by_role
 from app.db.db_connector import DB_SESSION
-from app.helpers.jwt_helper import create_access_token, oath2_scheme, verify_token
+from app.helpers.jwt_helper import create_access_token, oath2_scheme
 from fastapi import HTTPException, Depends
 from passlib.context import CryptContext
 from typing import Annotated
+from jose import jwt
+from app.settings import ALGORITHM, SECRET_KEY
 
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
@@ -34,7 +35,8 @@ def get_user_by_id(user_id:int,session: Session):
             )
 
 def get_current_user(token: Annotated[str, Depends(oath2_scheme)]):
-    return get_current_user_by_role(token, role="user")
+    payload = jwt.decode(token, SECRET_KEY,algorithms=[ALGORITHM])
+    return payload
     
 def update_user_by_id(user_id_to_update:int, user_update_details: UserUpdate, session: Session):    
 
@@ -91,11 +93,30 @@ def admin_or_user(username: str, password: str, session: Session):
     
     admin = session.exec(select(Admin).where(Admin.admin_email==username)).first()
     user = session.exec(select(User).where(User.user_email == username)).first()
-
+    
     if admin and pwd_context.verify(password, admin.admin_password):
         access_token = create_access_token({"sub": username, "role": "admin", "user_id": admin.admin_id})
         return {"access_token": access_token, "token_type":"Bearer"}
+    
     elif user and password == user.user_password:
         access_token = create_access_token({"sub": username, "role": "user", "user_id": user.user_id, "user_name": user.user_name})
         print(access_token)
         return {"access_token": access_token, "token_type":"Bearer"}
+
+    else:
+        raise HTTPException(
+        status_code=409, detail="credentials are not valid"
+    )
+    
+def login_of_user(username: str, password: str, session: Session):
+    
+    user = session.exec(select(User).where(User.user_email == username)).first()
+
+    if user and password == user.user_password:
+        access_token = create_access_token({"sub": username, "role": "user", "user_id": user.user_id, "user_name": user.user_name})
+        print(access_token)
+        return {"access_token": access_token, "token_type":"Bearer"}
+    else:
+        raise HTTPException(
+        status_code=409, detail="user not existed"
+    )

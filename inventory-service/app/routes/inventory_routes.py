@@ -6,7 +6,7 @@ from app.crud.supplier_crud import add_to_supplier, get_to_supplier, update_to_s
 from app.crud.inventory_crud import add_to_inventory, get_to_inventory_item_by_id, update_to_inventory, delete_to_inventory, get_inventory_items_by_category, get_inventory_items_by_warehouse, get_all_items, update_of_inventory
 from app.crud.stockin_crud import add_stock_in, get_stock_in_entries_by_item, get_stock_in_entries_by_supplier, get_stock_in_entries_by_warehouse, calculate_stock_level
 from typing import Annotated
-from app.shared_helper import validate_token
+from app.shared_helper import admin_validate_token
 from app.kafka.producers.producer import get_kafka_producer
 from aiokafka import AIOKafkaProducer
 
@@ -19,7 +19,7 @@ def welcome():
 @router.post('/add_warehouse', tags=["Warehouse"])
 def add_warehouse(
                 warehouse_data: Warehouse,
-                token: Annotated[str, Depends(validate_token)],
+                token: Annotated[str, Depends(admin_validate_token)],
                 session : DB_SESSION
                 ):
     added_warehouse = add_to_warehouse(warehouse_data, session)
@@ -28,7 +28,7 @@ def add_warehouse(
 @router.get('/warehouse/{warehouse_id}', tags=["Warehouse"])
 def get_warehouse(
                 warehouse_id: int,
-                token: Annotated[str, Depends(validate_token)],
+                token: Annotated[str, Depends(admin_validate_token)],
                 session : DB_SESSION
                 ):
     got_warehouse = get_to_warehouse(warehouse_id, session)
@@ -38,7 +38,7 @@ def get_warehouse(
 def update_warehouse(
                 id: int,
                 warehouse_data: Warehouse,
-                token: Annotated[str, Depends(validate_token)],
+                token: Annotated[str, Depends(admin_validate_token)],
                 session : DB_SESSION
                 ):
     updated_warehouse = update_to_warehouse(id,warehouse_data, session)
@@ -47,14 +47,14 @@ def update_warehouse(
 @router.delete('/delete_warehouse', tags=["Warehouse"])
 def delete_warehouse(
                     id: int,
-                    token: Annotated[str, Depends(validate_token)],
+                    token: Annotated[str, Depends(admin_validate_token)],
                     session : DB_SESSION
                     ):
     deleted_warehouse = delete_to_warehouse(id, session)
     return deleted_warehouse
 
 @router.get('/get-all-warehouses', tags=["Warehouse"])
-def get_warehouses(token: Annotated[str, Depends(validate_token)],
+def get_warehouses(token: Annotated[str, Depends(admin_validate_token)],
                     session : DB_SESSION):
     
     warehouses = list_all_warehouses(session)
@@ -64,7 +64,7 @@ def get_warehouses(token: Annotated[str, Depends(validate_token)],
 @router.post('/add_supplier', tags=["Supplier"])
 def add_supplier(
                 supplier_data: Supplier,
-                token: Annotated[str, Depends(validate_token)],
+                token: Annotated[str, Depends(admin_validate_token)],
                 session : DB_SESSION
                 ):
     added_supplier = add_to_supplier(supplier_data, session)
@@ -73,7 +73,7 @@ def add_supplier(
 @router.get('/supplier/{supplier_id}', tags=["Supplier"])
 def get_supplier(
                 supplier_id: int,
-                token: Annotated[str, Depends(validate_token)],
+                token: Annotated[str, Depends(admin_validate_token)],
                 session : DB_SESSION
                 ):
     got_supplier = get_to_supplier(supplier_id, session)
@@ -83,7 +83,7 @@ def get_supplier(
 def update_supplier(
                 id: int,
                 supplier_data: Supplier,
-                token: Annotated[str, Depends(validate_token)],
+                token: Annotated[str, Depends(admin_validate_token)],
                 session : DB_SESSION
                 ):
     updated_supplier = update_to_supplier(id,supplier_data, session)
@@ -92,7 +92,7 @@ def update_supplier(
 @router.delete('/delete_supplier', tags=["Supplier"])
 def delete_supplier(
                     id: int,
-                    token: Annotated[str, Depends(validate_token)],
+                    token: Annotated[str, Depends(admin_validate_token)],
                     session : DB_SESSION
                     ):
     deleted_supplier = delete_to_supplier(id, session)
@@ -100,7 +100,7 @@ def delete_supplier(
 
 @router.get('/list-all-suppliers', tags=['Supplier'])
 def list_all_suppliers(
-                token: Annotated[str, Depends(validate_token)],
+                token: Annotated[str, Depends(admin_validate_token)],
                 session : DB_SESSION
                 ):
     all_suppliers = get_all_suppliers(session)
@@ -109,7 +109,7 @@ def list_all_suppliers(
 
 @router.post('/inventory', tags=['Inventory'])
 def add_inventory_item(inventory_data:Inventory,
-                       token: Annotated[str, Depends(validate_token)],
+                       token: Annotated[str, Depends(admin_validate_token)],
                        session: DB_SESSION
                        ):
     new_item = add_to_inventory(inventory_data, session)
@@ -118,7 +118,7 @@ def add_inventory_item(inventory_data:Inventory,
 @router.get('/inventory/{item_id}', tags=["Inventory"])
 def get_inventory_item(
                 item_id: int,
-                token: Annotated[str, Depends(validate_token)],
+                token: Annotated[str, Depends(admin_validate_token)],
                 session : DB_SESSION
                 ):
     item = get_to_inventory_item_by_id(item_id, session)
@@ -128,7 +128,7 @@ def get_inventory_item(
 def update_inventory_item(
                 item_id: int,
                 inventory_data: Inventory,
-                token: Annotated[str, Depends(validate_token)],
+                token: Annotated[str, Depends(admin_validate_token)],
                 session : DB_SESSION
                 ):
     updated_item = update_to_inventory(item_id,inventory_data, session)
@@ -137,7 +137,7 @@ def update_inventory_item(
 @router.delete('/inventory/{item_id}', tags=["Inventory"])
 def delete_inventory(
                     item_id: int,
-                    token: Annotated[str, Depends(validate_token)],
+                    token: Annotated[str, Depends(admin_validate_token)],
                     session : DB_SESSION,
                     producer: Annotated[AIOKafkaProducer, Depends(get_kafka_producer)]
                     ):
@@ -147,7 +147,7 @@ def delete_inventory(
 
 @router.get('/inventory/category/{category_id}', tags=['Inventory'])
 def get_inventory_by_category(category_id:int,
-                              token: Annotated[str, Depends(validate_token)],
+                              token: Annotated[str, Depends(admin_validate_token)],
                               session : DB_SESSION
                               ):
     items = get_inventory_items_by_category(category_id, session)
@@ -155,7 +155,7 @@ def get_inventory_by_category(category_id:int,
 
 @router.get("/inventory/warehouse/{warehouse_id}", tags=['Inventory'])
 def get_inventory_by_warehouse(warehouse_id: int,
-                               token: Annotated[str, Depends(validate_token)],
+                               token: Annotated[str, Depends(admin_validate_token)],
                                session : DB_SESSION
                                ):
     items = get_inventory_items_by_warehouse(warehouse_id, session)
@@ -163,7 +163,7 @@ def get_inventory_by_warehouse(warehouse_id: int,
 
 @router.get("/get-all-items", tags=["Inventory"])
 def get_all_items_list(
-                token: Annotated[str, Depends(validate_token)],
+                token: Annotated[str, Depends(admin_validate_token)],
                 session : DB_SESSION
                 ):
     all_items = get_all_items(session)
@@ -171,7 +171,7 @@ def get_all_items_list(
 
 @router.post("/stockin", tags=['StockIn'])
 async def add_stock(stock_in: StockIn,
-                # token: Annotated[str, Depends(validate_token)],
+                # token: Annotated[str, Depends(admin_validate_token)],
                 session : DB_SESSION,
                 producer: Annotated[AIOKafkaProducer, Depends(get_kafka_producer)]
                 ):
