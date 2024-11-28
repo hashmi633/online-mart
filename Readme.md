@@ -10,119 +10,69 @@ The **Online Mart API** is a modular and scalable e-commerce platform designed w
 
 ## Microservices Overview
 
-### 1. **User Service**
-Manages user accounts, authentication, and role-based access control.
-
-- **Features**:
-  - User registration and management.
-  - Role-based authentication (Admin, SubAdmin, User).
-  - JWT-secured endpoints.
-- **Technology Stack**:
-  - FastAPI, SQLModel, PostgreSQL, Kafka.
-
-<!-- [Read the User Service README](./user_service/README.md) -->
-
+1. **User Service**: Handles user registration, authentication, and role-based access control.
+2. **Product Service**: Manages product categories, product details, and pricing.
+3. **Order Service**: Processes user orders, manages cart operations, and integrates with inventory and product services.
+4. **Inventory Service**: Tracks inventory levels, handles stock management, and interacts with orders for availability checks.
+5. **Notification Service**: Sends email notifications for critical user events like order creation, payment confirmation, and shipment updates.
+6. **Payment Service**: Processes user payments and updates order statuses accordingly.
 ---
+## Workflow
 
-### 2. **Order Service**
-Handles order creation, management, and status updates.
+### 1. User Creation (`POST /add_user` - User Service)  
+Registers new users.
 
-- **Features**:
-  - Order CRUD operations.
-  - Integration with Product, Inventory, and Payment services.
-  - Kafka-powered event-driven workflows.
-- **Technology Stack**:
-  - FastAPI, SQLModel, PostgreSQL, Kafka.
+### 2. Adding Warehouse (`POST /add_warehouse` - Inventory Service)  
+Adds a new warehouse to the inventory system and saves it to the database. **Requires admin authentication**.
 
-<!-- [Read the Order Service README](./order_service/README.md) -->
+### 3. Adding Supplier (`POST /add_supplier` - Inventory Service)  
+Registers supplier details for procurement and tracking purposes. **Requires admin authentication**.
 
+### 4. Adding Category (`POST /category-creation` - Product Service)  
+Creates a new product category and saves it for future product association.
+
+### 5. Define Product (`POST /product-creation` - Product Service)  
+Registers product details, stores them, and publishes the `inventory_creation` topic to initialize inventory in the Inventory Service.
+
+### 6. Define Product Price (`POST /product-price` - Product Service)  
+Sets or updates product prices and publishes the `product_data` topic for the Order Service.
+
+### 7. Adding Stock in Inventory (`POST /stockin` - Inventory Service)  
+Updates inventory stock levels and publishes the `inventory_updates` topic for the Order Service.
+
+### 8. Add to Cart (`POST /add-to-cart` - Order Service)  
+Allows users to add products to their cart for future order creation. inventory availability and product price used from cache.
+
+### 9. Order Creation (`POST /order` - Order Service)  
+
+Processes user orders, validates product availability, and deducts stock using Kafka topics:
+- **Price Validation**: Sends product details request to Product Service (`get_product_details` topic). Product Service responds to Order Service with the topic `products_details_response`.
+- **Availability Check**: Sends product details request to Inventory Service (`get_product_details` topic). Inventory Service responds to Order Service with the topic `inventory_details_response`.
+- **Inventory Deduction**: Publishes a deduction request to Inventory Service (`inventory_deduction` topic).
+- **Notification**: Publishes order details to Notification Service (`order_notification` topic).
+
+### 10. Notifications (`Kafka Topics`)  
+Notifies users of order creation and subsequent events via Kafka topics:
+- **Order Notifications**: `order_notification`  
+<!-- - **Payment Notifications**: `payment_notification`  
+- **Shipment Notifications**: `shipment_notification`  
+- **Delivery Notifications**: `delivery_notification`   -->
 ---
-
-### 3. **Product Service**
-Manages product categories, product details, and pricing.
-
-- **Features**:
-  - CRUD operations for products and categories.
-  - Dynamic pricing allocation.
-  - Kafka-based data sharing.
-- **Technology Stack**:
-  - FastAPI, SQLModel, PostgreSQL, Kafka.
-
-<!-- [Read the Product Service README](./product_service/README.md) -->
-
----
-
-### 4. **Inventory Service**
-Tracks inventory levels, warehouse data, and supplier details.
-
-- **Features**:
-  - Stock management.
-  - Integration with Product and Order services.
-  - Kafka-powered inventory updates.
-- **Technology Stack**:
-  - FastAPI, SQLModel, PostgreSQL, Kafka.
-
-<!-- [Read the Inventory Service README](./inventory_service/README.md) -->
-
----
-
-<!-- ### 5. **Payment Service**
-Handles payment processing, verification, and refunds.
-
-- **Features**:
-  - Payment initiation and verification.
-  - Refund handling and updates.
-  - Secure and tokenized payment processing.
-- **Technology Stack**:
-  - FastAPI, Kafka, SQLModel, Third-Party Payment Gateway APIs.
-
-[Read the Payment Service README](./payment_service/README.md)
-
---- -->
-
-### 6. **Notification Service**
-Sends user notifications related to order events, payment status, and shipping updates.
-
-- **Features**:
-  - Order, payment, and shipping notifications.
-  - Kafka-based event-driven notifications.
-  <!-- - Email integration via SMTP or APIs. -->
-- **Technology Stack**:
-  - FastAPI, Kafka
-  <!-- , SMTP. -->
-
-<!-- [Read the Notification Service README](./notification_service/README.md) -->
-
----
-
-## Architecture
-
-### Communication
-1. **User Interaction**:
-   - Users interact via REST APIs, secured with JWT tokens.
-
-2. **Inter-Service Communication**:
-   - Kafka topics are used for event-driven workflows and data synchronization.
-
-<!-- 3. **Data Isolation**:
-   - Each microservice maintains its own database, ensuring modularity. -->
-
-### High-Level Design
-- **Frontend**: Communicates with the backend via REST APIs.
-- **Backend**: Microservices communicate asynchronously using Kafka.
-- **Database**: PostgreSQL is used as the primary database for all services.
-
----
-
 ## Kafka Topics
 
-### Key Topics Used:
-- `order_notification`: Notifications related to order events.
-- `inventory_deduction`: Updates for inventory stock levels.
-- `payment_status`: Payment success or failure updates.
-- `shipment_notification`: Updates on order shipment.
-- `users`: User data synchronization.
-
+| Topic Name               | Purpose                                                      |
+|--------------------------|-------------------------------------------------------------|
+| `inventory_creation`    | Triggers inventory creation for products.             |
+| `product_data`          | Shares product price and details with the Order Service and stores it in cache.    |
+| `inventory_data`        | Shares inventory stock levels with the Order Service and stores it in cache.        |
+| `get_product_details`   | Used by Order Service at order creation to request product and inventory details. |
+| `products_details_response` | Responds to `get_product_details` for product details from Product Service. |
+| `inventory_details_response` | Responds to `get_product_details` for inventory details from Inventory Service. |
+| `inventory_deduction`   | Deducts stock levels for processed orders.                  |
+| `order_notification`    | Notifies users of order creation or updates.                |
+<!-- | `payment_notification`  | Notifies users of payment statuses.                         |
+| `shipment_notification` | Notifies users of shipping updates.                         |
+| `delivery_notification` | Confirms successful order delivery.                         | -->
 ---
 
 ## Environment Setup
@@ -150,13 +100,13 @@ cd online-mart-api
 
 2. Access the APIs:
     - **User Service**: `http://localhost:8081`
-    - **Order Service**: `http://localhost:8002`
+    - **Inventory Service**: `http://localhost:8002`
     - **Product Service**: `http://localhost:8003`
-    - **Inventory Service**: `http://localhost:8004`
-    <!-- - **Payment Service**: `http://localhost:8005`
-    - **Notification Service**: `http://localhost:8006` -->
+    - **Order Service**: `http://localhost:8004`   
+    <!-- - **Payment Service**: `http://localhost:8005` -->
+    - **Notification Service**: `http://localhost:8005`
 
----
+<!-- ---
 
 ## Future Enhancements
 
@@ -178,4 +128,4 @@ cd online-mart-api
 1. Fork the repository.
 2. Create a feature branch for your changes.
 3. Test thoroughly before submitting a pull request.
-4. Provide a detailed description of your changes.
+4. Provide a detailed description of your changes. -->
