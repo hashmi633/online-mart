@@ -113,8 +113,10 @@ The User Service handles user management, authentication, and authorization. It 
 Add the following variables to `.env`:
 ```env
 DATABASE_URL=your_postgresql_connection_string
-JWT_SECRET_KEY=your_secret_key
-JWT_ALGORITHM=HS256
+SECRET_KEY=your_secret_key
+ALGORITHM=HS256
+ADMIN_USERNAME=your_admin_email
+ADMIN_PASSWORD=your_admin_password
 ```
 
 <!-- ### 2. Install Dependencies
